@@ -117,79 +117,84 @@ A cross-platform Agent Skill package supporting Cursor, Claude Code, and GitHub 
 | ID | Task | Wave | Delegate? | Status |
 |---|---|:---:|:---:|---|
 | `gitignore` | Create `.gitignore` excluding `.prism/` (runtime data, prompt logs, usage logs, overhead cache). Also exclude any platform-specific secrets (env files). | 1 | Fast model | pending |
-| `prism-config` | Create `.prism/prism.config.json`: user-editable config for hook settings, analysis thresholds, overhead alert limits, and model_routing (mode: platform/local/capable; ollama opt-in; cloud_free_apis deferred). | 1 | Fast model | pending |
-| `output-schemas` | Create `scripts/schemas/`: JSON schemas for structured lightweight-model output — sanitize_output.json, score_output.json, refract_plan.json, pattern_output.json. | 1 | Fast model | pending |
-| `verbosity-patterns` | Create `scripts/verbosity_patterns.json`: seeded dictionary of known verbose phrases, category, terse_alt, and estimated token_saving. | 1 | Fast model | pending |
+| `prism-config` | Create `.prism/prism.config.json`: user-editable config for hook settings, analysis thresholds, overhead alert limits, and model_routing (mode: platform/local/capable; ollama opt-in block with enabled:false default; cloud_free_apis block with enabled:false and security note — deferred to future release). All Prism scripts read this file. | 1 | Fast model | pending |
+| `output-schemas` | Create `scripts/schemas/`: JSON schemas for structured lightweight-model output — sanitize_output.json, score_output.json, refract_plan.json, pattern_output.json. Schema constraints ensure reliable output from fast/cheap models. Used by both platform-native calls and optional Ollama. | 1 | Fast model | pending |
+| `verbosity-patterns` | Create `scripts/verbosity_patterns.json`: seeded dictionary of known verbose phrases, category (royal_we/politeness/preamble/filler/hedging/bundling/vague), terse_alt, and estimated token_saving. Seed from research (we shall, let us, could you please, I would like you to, in this context, it is worth noting, etc.) | 1 | Fast model | pending |
 | `kb-schema` | Design and populate `knowledge-base/rules.json`: schema with pillar, category, model_applies, source_type, example_bad/good, confidence, apply_cost fields. Seed with all researched sources. apply_cost drives model routing (script/fast/capable). | 1 | Capable | pending |
-| `kb-sources` | Create `knowledge-base/sources.md`: bibliography of all KB sources with URL, type (official/community/research), model version scope, and prior art tools. | 1 | Fast model | pending |
+| `kb-sources` | Create `knowledge-base/sources.md`: bibliography of all KB sources with URL, type (official/community/research), and model version scope. Include prior art tools as sources: Microsoft Prompt Advisor (confidence scoring model), Promptfoo (evaluation dimensions), DSPy (few-shot injection technique), PromptLayer (session replay pattern). Each prior art entry should note which Prism pillar/rule category it informs. | 1 | Fast model | pending |
 | `refraction` | Create `refraction-playbook.md`: XML tagging rules, prompt caching strategy, CoT trigger library, pre-filled response headers (sourced from KB) | 1 | Capable | pending |
 | `sanitization` | Create `sanitization-rules.md`: injection neutralization patterns, PII entity types, ambiguity heuristics (sourced from KB) | 1 | Capable | pending |
 | `introspection` | Create `introspection-scoring.md`: 5-dimension Agentic Readiness Score rubric, Why Log format specification | 1 | Capable | pending |
 | `platform-copilot-instructions` | Create `.github/copilot-instructions.md`: brief always-on Copilot instructions noting the Prism agent is available. | 1 | Fast model | pending |
-| `overhead-calc` | Create `scripts/overhead_calc.py`: scans all Prism component files, computes token estimates (chars÷4), writes `.prism/component-sizes.json`. No model. | 1 | Fast model | pending |
-| `platform-model-router` | Create `scripts/platform_model.py`: detects current platform, returns appropriate lightweight model name within security boundary. | 1 | Fast model | pending |
+| `overhead-calc` | Create `scripts/overhead_calc.py`: scans all Prism component files at install/update time, computes token estimates (chars÷4), writes `.prism/component-sizes.json`. No model. Per-command overhead table built from component-sizes. Called by prism_preparser.py at sessionStart to snapshot baseline. | 1 | Fast model | pending |
+| `platform-model-router` | Create `scripts/platform_model.py`: detects current platform, returns the appropriate lightweight model name that stays within the platform's security boundary (Copilot=gpt-4.1/0-multiplier, Claude Code=claude-haiku-4-5, Cursor=auto/built-in). Optionally checks for Ollama local as a secondary option (opt-in only). Cloud free APIs (Groq, Gemini, OpenRouter) are deferred — not implemented in v1, require explicit opt-in, clearly flagged as leaving platform security boundary. | 1 | Fast model | pending |
 | `kb-query` | Create `scripts/kb_query.py`: CLI tool to filter rules.json by --pillar, --model, --category, --source, --apply-cost. Include hash-based result caching. Outputs filtered JSON for agent or subagent consumption. | 2 | Fast model | pending |
 | `pii-script` | Create `scripts/pii_scan.py`: regex-based PII and prompt injection scanner, outputs JSON report | 2 | Fast model | pending |
-| `usage-log` | Extend `.prism/` with `usage-log.jsonl` (per-session) and `usage-summary.json` (rolling 30-session stats). No model. | 2 | Fast model | pending |
-| `prompt-log` | Define `.prism/` directory structure (gitignored): prompt-log.jsonl schema. Add log-append step to prism_preparser.py — fires AFTER PII scrub. Add `.prism/` to `.gitignore`. | 2 | Fast model | pending |
-| `pattern-analysis` | Create `scripts/pattern_analysis.py`: reads `.prism/prompt-log.jsonl`, runs fast-model analysis, computes trend metrics, outputs `.prism/style-profile.json` and `.prism/analysis-YYYYMMDD.md`. | 2 | Fast model | pending |
-| `tests-setup` | Create `tests/` directory: unit/, integration/, fixtures/ subdirs. Write pytest.ini, conftest.py (shared fixtures). Write all test stubs in red state before implementing any script. Add `.github/workflows/test.yml` (pytest --cov, 80% threshold, 100% for pii_scan and prism_preparser). Create `tests/MANUAL_TESTS.md`. | 2 | Orchestrator | pending |
-| `hook-config` | Create `hooks/claude_settings_template.json`: the `.claude/settings.json` template that `/prism hook on` writes (works natively in Claude Code AND Cursor) | 2 | Fast model | pending |
-| `hook-preparser` | Create `hooks/prism_preparser.py`: beforeSubmitPrompt command hook — Stage 1 is pure regex (no model), outputs platform-appropriate JSON. Keep under 50ms. | 3 | Orchestrator | pending |
-| `stop-hook` | Add stop/sessionEnd hook to `.claude/settings.json` template: checks `.prism/.analysis-needed` flag, runs pattern_analysis.py in background. Also writes session overhead entry to usage-log.jsonl. | 3 | Fast model | pending |
-| `overhead-alert` | In stop hook: if overhead_pct > 20% or prism_tokens_est > 2000, write `.prism/.overhead-alert`. In sessionStart hook: inject advisory and clear flag. | 3 | Fast model | pending |
+| `usage-log` | Extend `.prism/` with `usage-log.jsonl` (per-session: ts, platform, commands_run, prism_tokens_est, session_tokens_est, overhead_pct, hook_stages_fired) and `usage-summary.json` (rolling 30-session stats). Lightweight append in stop hook and per-command in SKILL.md dispatch. No model. | 2 | Fast model | pending |
+| `prompt-log` | Define `.prism/` directory structure (gitignored): prompt-log.jsonl schema (ts, session_id, platform, tokens_est, efficiency_ratio, filler_count, prompt_scrubbed). Add log-append step to prism_preparser.py — fires AFTER PII scrub, before quality gate. Add `.prism/` to `.gitignore`. | 2 | Fast model | pending |
+| `pattern-analysis` | Create `scripts/pattern_analysis.py`: reads `.prism/prompt-log.jsonl`, runs fast-model analysis to detect personal idioms beyond the seeded list, computes trend metrics (avg token count, efficiency ratio over time), outputs `.prism/style-profile.json` and a human-readable `.prism/analysis-YYYYMMDD.md` report. | 2 | Fast model | pending |
+| `tests-setup` | Create `tests/` directory: unit/, integration/, fixtures/ subdirs. Write pytest.ini, conftest.py (shared fixtures: rules_fixture.json, prompt_log_fixture.jsonl, hook payload JSONs). Write all test stubs in red state before implementing any script. Add `.github/workflows/test.yml` (pytest --cov, 80% threshold, 100% for pii_scan and prism_preparser). Create `tests/MANUAL_TESTS.md` with agent-layer test checklist. | 2 | Orchestrator | pending |
+| `hook-config` | Create `hooks/claude_settings_template.json`: the `.claude/settings.json` template that `/prism hook on` writes (works natively in Claude Code AND in Cursor via third-party hooks compatibility) | 2 | Fast model | pending |
+| `hook-preparser` | Create `hooks/prism_preparser.py`: beforeSubmitPrompt command hook — Stage 1 is pure regex (no model), outputs platform-appropriate JSON (Cursor: continue+user_message, Claude Code: decision+additionalContext). Keep under 50ms. | 3 | Orchestrator | pending |
+| `stop-hook` | Add stop/sessionEnd hook to `.claude/settings.json` template: checks `.prism/.analysis-needed` flag (set by preparser when log crosses threshold, default 25 entries). If set, runs pattern_analysis.py in background and clears flag. Also writes session overhead entry to usage-log.jsonl and checks alert threshold. | 3 | Fast model | pending |
+| `overhead-alert` | In stop hook: if overhead_pct > threshold (default 20%) or prism_tokens_est > absolute limit (default 2000), write `.prism/.overhead-alert` with reason. In sessionStart hook: check for flag, inject advisory as additionalContext: "Prism overhead was high (X tokens, Y%). Run `/prism usage --optimize` or `/prism hook off` to reduce it." Clear flag after injection. | 3 | Fast model | pending |
 | `skill-main` | Create `SKILL.md`: frontmatter (disable-model-invocation: true, allowed-tools, argument-hint, metadata), model-routed command dispatch (hook on/off = no model; score/sanitize/explain = fast; improve-prompt = parallel subagents + synthesis), progressive disclosure links | 3 | Orchestrator | pending |
-| `sub-skills` | Create Claude Code sub-skills (user-invocable: false, context: fork, model: claude-haiku-4-5): prism-sanitize/SKILL.md, prism-score/SKILL.md, prism-refract/SKILL.md. Copilot equivalent: skill body instructs agent to use GPT-4.1 (0-multiplier). Include Cursor sequential fallback note. | 4 | Fast model | pending |
-| `platform-claude-code` | Create `.claude/skills/prism/SKILL.md`: identical to Cursor SKILL.md. Add Claude Code-only frontmatter fields: allowed-tools, argument-hint, hooks (skill-scoped). | 4 | Fast model | pending |
-| `platform-copilot` | Create `.github/agents/prism.agent.md`: GitHub Copilot custom agent (translated from SKILL.md). | 4 | Fast model | pending |
-| `platform-copilot-hooks` | Create `.github/hooks/prism_hooks.json` template: Copilot hook config (userPromptSubmitted for logging + preToolUse for tool-level security). Written by `/prism hook on`. | 4 | Fast model | pending |
-| `patterns-command` | Add `/prism patterns`, `/prism patterns --apply`, `/prism patterns --reset` to SKILL.md dispatch. | 4 | Orchestrator | pending |
-| `usage-command` | Add `/prism usage`, `/prism usage --optimize`, `/prism configure` to SKILL.md dispatch. | 4 | Orchestrator | pending |
+| `sub-skills` | Create Claude Code sub-skills (user-invocable: false, context: fork, model: claude-haiku-4-5): prism-sanitize/SKILL.md, prism-score/SKILL.md, prism-refract/SKILL.md. Each loads one playbook and outputs structured JSON for the synthesis agent. Copilot equivalent: skill body instructs agent to use GPT-4.1 (0-multiplier model) by name. Include Cursor fallback note (sequential execution, built-in fast model). | 4 | Fast model | pending |
+| `platform-claude-code` | Create `.claude/skills/prism/SKILL.md`: identical to Cursor SKILL.md (both follow AgentSkills.io standard). Add Claude Code-only frontmatter fields: allowed-tools, argument-hint, hooks (skill-scoped). | 4 | Fast model | pending |
+| `platform-copilot` | Create `.github/agents/prism.agent.md`: GitHub Copilot custom agent (translated from SKILL.md, uses Copilot frontmatter: name, description, disable-model-invocation, tools). | 4 | Fast model | pending |
+| `platform-copilot-hooks` | Create `.github/hooks/prism_hooks.json` template: Copilot hook config (userPromptSubmitted for logging + preToolUse for tool-level security). Written by `/prism hook on`. Note: userPromptSubmitted output is ignored by Copilot — blocking is preToolUse only. | 4 | Fast model | pending |
+| `patterns-command` | Add `/prism patterns`, `/prism patterns --apply`, `/prism patterns --reset` to SKILL.md dispatch. `--apply` generates `.cursor/rules/prism-personal-style.mdc` from style-profile.json (always-on Rule injecting personal style guidance into every session). All three use fast model or no model. | 4 | Orchestrator | pending |
+| `usage-command` | Add `/prism usage` and `/prism usage --optimize` to SKILL.md dispatch. `usage` = no model (reads usage-summary.json, formats table). `--optimize` = fast model: reads usage trend + component sizes, suggests which components to disable or downgrade. Add `/prism configure` to write `.prism/prism.config.json` toggles. | 4 | Orchestrator | pending |
 | `examples` | Create `examples.md`: 3-4 full before/after prompt transformation walkthroughs | 4 | Capable | pending |
 | `readme` | Create `README.md`: elevator pitch, three pillars, per-platform install steps, top 5 commands, KB update workflow, how to disable/uninstall. | 5 | Fast model | pending |
 
 ## Subagent Execution Plan
 
-The 31 tasks are grouped into 5 sequential waves. Within each wave, all tasks are independent and can be dispatched to subagents in parallel. The orchestrating agent handles tasks marked **Orchestrator** directly — these require cross-file awareness or are security-critical.
+The 31 implementation tasks are grouped into 5 sequential waves. Within each wave all tasks are independent and can be dispatched to subagents in parallel. Tasks marked **Orchestrator** are run directly by the main agent — they require cross-file awareness, integrate multiple prior outputs, or are security-critical.
 
 ```mermaid
 flowchart TD
     subgraph wave1 ["Wave 1 — Foundations (12 tasks, all parallel)"]
-        W1A["gitignore\nprism-config\noutput-schemas\nverbosity-patterns"]
-        W1B["kb-schema\nkb-sources\n(Capable subagents)"]
-        W1C["refraction\nsanitization\nintrospection\n(Capable subagents)"]
-        W1D["platform-copilot-instructions\noverhead-calc\nplatform-model-router\n(Fast subagents)"]
+        W1A["gitignore · prism-config · output-schemas · verbosity-patterns"]
+        W1B["kb-schema · kb-sources (Capable)"]
+        W1C["refraction · sanitization · introspection (Capable)"]
+        W1D["platform-copilot-instructions · overhead-calc · platform-model-router (Fast)"]
     end
 
     subgraph wave2 ["Wave 2 — Scripts & Data (7 tasks, parallel)"]
-        W2A["kb-query\npii-script\nusage-log\nprompt-log\npattern-analysis\nhook-config\n(Fast subagents)"]
-        W2B["tests-setup\n(Orchestrator)"]
+        W2A["kb-query · pii-script · usage-log · prompt-log · pattern-analysis · hook-config (Fast)"]
+        W2B["tests-setup (Orchestrator)"]
     end
 
-    subgraph wave3 ["Wave 3 — Hook System & Core Skill (3 tasks)"]
-        W3A["stop-hook\noverhead-alert\n(Fast subagents)"]
-        W3B["skill-main\nhook-preparser\n(Orchestrator — security-critical)"]
+    subgraph wave3 ["Wave 3 — Hook System & Core Skill"]
+        W3A["stop-hook · overhead-alert (Fast)"]
+        W3B["skill-main · hook-preparser (Orchestrator)"]
     end
 
     subgraph wave4 ["Wave 4 — Platform Files & Commands (7 tasks, parallel)"]
-        W4A["sub-skills\nplatform-claude-code\nplatform-copilot\nplatform-copilot-hooks\n(Fast subagents)"]
-        W4B["patterns-command\nusage-command\nexamples\n(Orchestrator + Capable)"]
+        W4A["sub-skills · platform-claude-code · platform-copilot · platform-copilot-hooks (Fast)"]
+        W4B["patterns-command · usage-command (Orchestrator) · examples (Capable)"]
     end
 
-    subgraph wave5 ["Wave 5 — Documentation (1 task)"]
-        W5["readme\n(Fast subagent)"]
+    subgraph wave5 ["Wave 5 — Documentation"]
+        W5["readme (Fast)"]
     end
 
     wave1 --> wave2 --> wave3 --> wave4 --> wave5
 ```
 
+
+
 ### Delegation Key
 
-| Label | Meaning |
-|---|---|
-| **Orchestrator** | Run directly by the main agent. Requires cross-file context, integrates multiple prior outputs, or is security-critical (hook scripts, SKILL.md dispatch). |
-| **Capable** | Dispatch to a capable-model subagent. Content-rich creation requiring research synthesis and high-quality prose (KB seeding, playbooks, examples). |
-| **Fast model** | Dispatch to a fast/lightweight subagent. Well-scoped, single-file creation with a clear schema or template to follow. Low risk of subtle errors. |
+
+| Label            | Meaning                                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Orchestrator** | Run directly by the main agent. Requires cross-file context, integrates multiple prior outputs, or is security-critical.    |
+| **Capable**      | Dispatch to a capable-model subagent. Content-rich creation requiring research synthesis (KB seeding, playbooks, examples). |
+| **Fast model**   | Dispatch to a fast/lightweight subagent. Well-scoped, single-file creation with a clear schema or template to follow.       |
+
+Wave 1: launch all 12 simultaneously. Wave 2 unblocked after Wave 1. `skill-main` and `hook-preparser` in Wave 3 are the central integration points — orchestrator handles these directly. README written last when all files exist.
 
 ### Wave 1 — Full Parallel (12 tasks)
 
