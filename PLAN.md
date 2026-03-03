@@ -47,6 +47,67 @@ Prism is designed to pay for itself. The lightweight analysis subagents run on t
 
 ---
 
+## Prior Art & Competitive Landscape
+
+Several tools exist in the prompt optimization and analysis space. Prism is not the first to address this problem, but it is the first to combine all of the following in a single IDE-native, security-first, cost-transparent skill: pre-flight sanitization, personal pattern learning, model-version-aware rules, and an always-on hook system with no separate subscription or credits.
+
+### Existing Tools
+
+**[Microsoft Prompt Advisor](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/kit-prompt-advisor)** (Copilot Studio Kit)
+Provides confidence scoring (0–100) with High/Medium/Low bands and iterative prompt refinement using Zero-shot, Few-shot, and Chain-of-thought technique suggestions. The confidence scoring model directly validates Prism's Agentic Readiness Score concept.
+Limitations: Requires a Microsoft Dataverse environment, AI Builder credits, and a Power Platform admin setup — a significant infrastructure overhead. UI-only tool with no IDE integration, no hook system, no PII/injection scanning, and no personal pattern learning.
+
+**Anthropic Prompt Improver** (Claude.ai built-in)
+Single-turn prompt rewrite using Claude's own understanding of effective prompting. Useful for quick rewrites within the Claude.ai web UI.
+Limitations: Model-specific (Claude only), no cross-platform support, no scoring rubric, no sanitization layer, no hook system, no pattern learning, no cost tracking.
+
+**[PromptPerfect](https://promptperfect.jina.ai/)** (Jina AI)
+Cloud SaaS tool offering multi-model prompt optimization with visual feedback. Supports GPT, Claude, Gemini, and others.
+Limitations: Subscription-based with a separate billing relationship, no IDE integration, no security/sanitization pillar, no overhead tracking, prompts sent to a third-party service.
+
+**[DSPy](https://github.com/stanfordnlp/dspy)** (Stanford NLP)
+A research framework for programmatic, gradient-like prompt and few-shot example optimization. Treats prompts as learnable parameters rather than static text.
+Limitations: Developer framework requiring Python expertise and labelled training data. Not an end-user skill, no real-time pre-flight analysis, no sanitization, not IDE-integrated.
+
+**[Promptfoo](https://www.promptfoo.dev/)**
+CLI tool for prompt regression testing and evaluation across multiple models. Excellent for systematic quality assurance of prompt suites.
+Limitations: Test-time analysis only — prompts are evaluated in batch, not intercepted pre-flight. No sanitization, no personal pattern learning, no always-on hook system.
+
+**[PromptLayer](https://promptlayer.com/) / [Helicone](https://helicone.ai/)**
+LLM observability platforms that log, track, and replay prompts across sessions for post-hoc analysis and cost monitoring.
+Limitations: Observational only — prompts are analysed after they have already been sent to the model. No pre-flight blocking, no PII scanning, no rewriting or scoring before submission.
+
+**[LangChain Prompt Templates](https://python.langchain.com/docs/concepts/prompt_templates/)**
+A structured prompt management library enabling parameterised, composable prompt construction for developer workflows.
+Limitations: Developer-facing library requiring code integration. No scoring rubric, no sanitization, no IDE hook system, no personal pattern learning.
+
+### What Makes Prism Different
+
+No existing tool combines all of the following in a single, IDE-native, zero-extra-subscription package:
+
+| Feature | Prism | MS Prompt Advisor | Anthropic Improver | PromptPerfect | DSPy | Promptfoo |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| IDE-native (no context switch) | ✅ | ❌ | ❌ | ❌ | ❌ | Partial |
+| Pre-flight PII + injection scanning | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Always-on hook (intercepts every prompt) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Confidence / readiness scoring | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| Personal pattern learning | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Model-version-aware rules | ✅ | ❌ | Partial | ❌ | ❌ | ❌ |
+| Platform-native cost model (no extra credits) | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ |
+| Prism overhead self-monitoring | ✅ | N/A | N/A | N/A | N/A | N/A |
+| Cross-platform (Cursor + Claude Code + Copilot) | ✅ | ❌ | ❌ | ❌ | ❌ | Partial |
+
+### Insights for the Knowledge Base
+
+The prior art also informs Prism's KB design:
+
+- **Microsoft Prompt Advisor's 0–100 confidence scale** with High/Medium/Low bands validates the tiered ARS scoring approach and gives a reference benchmark for score calibration.
+- **Promptfoo's evaluation dimensions** (correctness, relevance, toxicity, latency) map onto Prism's Introspection pillar rubric dimensions.
+- **DSPy's "few-shot example injection" technique** is a concrete refraction rule (category: `example-injection`, apply_cost: `fast`).
+- **PromptLayer's session replay concept** reinforces the value of Prism's prompt log and pattern analysis loop.
+
+---
+
 ## What Prism Is
 
 A cross-platform Agent Skill package supporting Cursor, Claude Code, and GitHub Copilot. The PrismLLM repo ships platform-ready directories for each tool. A shared `SKILL.md` (built on the open [AgentSkills.io](https://agentskills.io/) standard) works natively in both Cursor and Claude Code with no changes. GitHub Copilot uses a translated `.github/agents/prism.agent.md`. When invoked, the agent reads the skill, queries the knowledge base, applies the Prism methodology, and returns an optimized prompt.
