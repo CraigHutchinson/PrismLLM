@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PrismRefractPlan",
+  "description": "Structured output schema for Prism Subagent C (refraction planning). Describes structural changes to apply.",
+  "type": "object",
+  "properties": {
+    "structure_changes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ordered list of structural improvements to apply (e.g. 'Wrap task in <task> XML tag')"
+    },
+    "xml_tags_suggested": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "XML tag names to introduce (e.g. task, context, constraints, format)"
+    },
+    "cot_trigger": {
+      "type": "boolean",
+      "description": "True if the task warrants a chain-of-thought trigger phrase"
+    },
+    "cot_phrase": {
+      "type": "string",
+      "description": "The recommended CoT trigger phrase if cot_trigger is true"
+    },
+    "pre_fill_header": {
+      "type": "string",
+      "description": "Suggested pre-filled assistant response header (empty string if none)"
+    },
+    "cache_candidates": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Sections identified as stable/cacheable (suitable for cache_control breakpoints)"
+    },
+    "rules_applied": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of refraction rules that triggered (e.g. ref-001, ref-005)"
+    },
+    "verbosity_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Verbose phrases detected in the prompt (e.g. 'we shall', 'could you please')"
+    }
+  },
+  "required": ["structure_changes", "rules_applied"]
+}

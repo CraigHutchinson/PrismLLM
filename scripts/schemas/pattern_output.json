@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PrismPatternOutput",
+  "description": "Structured output schema for pattern_analysis.py. Describes detected personal writing patterns.",
+  "type": "object",
+  "properties": {
+    "detected_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pattern": { "type": "string", "description": "The detected phrase or habit" },
+          "category": {
+            "type": "string",
+            "enum": ["royal_we", "politeness", "preamble", "filler", "hedging", "bundling", "vague", "other"],
+            "description": "Verbal habit category"
+          },
+          "frequency": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Fraction of prompts containing this pattern (0.0-1.0)"
+          },
+          "token_cost": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Estimated tokens wasted per occurrence"
+          },
+          "suggestion": { "type": "string", "description": "Terse alternative phrasing" }
+        },
+        "required": ["pattern", "category", "frequency", "suggestion"]
+      }
+    },
+    "avg_efficiency_ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Average (non-filler tokens / total tokens) across analysed prompts"
+    },
+    "avg_token_count": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Mean token count per prompt in the analysis window"
+    },
+    "trend": {
+      "type": "string",
+      "enum": ["improving", "stable", "declining"],
+      "description": "Efficiency trend over the analysis window"
+    },
+    "prompts_analysed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of prompt-log entries processed"
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-paragraph human-readable summary of findings"
+    }
+  },
+  "required": ["detected_patterns", "avg_efficiency_ratio", "trend"]
+}

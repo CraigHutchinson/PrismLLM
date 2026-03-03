@@ -1,0 +1,22 @@
+{
+  "_prism_version": "1.0",
+  "_note": "GitHub Copilot hook config written by /prism hook on. Note: userPromptSubmitted output is IGNORED by Copilot — observational/logging only. Only preToolUse can actually block actions.",
+  "hooks": [
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "bash": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event userPromptSubmit --platform copilot",
+        "powershell": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event userPromptSubmit --platform copilot"
+      },
+      "_purpose": "Logging and audit only — Copilot ignores this hook's output at prompt level"
+    },
+    {
+      "event": "preToolUse",
+      "run": {
+        "bash": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event preToolUse --platform copilot --stdin",
+        "powershell": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event preToolUse --platform copilot --stdin"
+      },
+      "_purpose": "Security gate: can deny dangerous tool calls. Returns permissionDecision: deny if PII/injection detected in tool args."
+    }
+  ]
+}

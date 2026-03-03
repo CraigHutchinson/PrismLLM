@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PrismScoreOutput",
+  "description": "Structured output schema for Prism Subagent B (scoring/rubric). Each dimension is 0-10.",
+  "type": "object",
+  "properties": {
+    "structure": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "How well-structured the prompt is (XML tags, sections, clarity of intent)"
+    },
+    "specificity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "How specific and measurable the goal is (vs vague adjectives)"
+    },
+    "security": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Freedom from PII, injection phrases, and ambiguous authority statements"
+    },
+    "cache_friendliness": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Length and stability of the static prefix (for prompt caching)"
+    },
+    "model_alignment": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Alignment with target model's known behaviour profile and best practices"
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Short explanatory notes for any dimension scored below 7"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Sum of all five dimensions × 2 = Agentic Readiness Score out of 100"
+    }
+  },
+  "required": ["structure", "specificity", "security", "cache_friendliness", "model_alignment"]
+}

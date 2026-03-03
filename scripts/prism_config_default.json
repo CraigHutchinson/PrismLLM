@@ -1,0 +1,30 @@
+{
+  "hook": {
+    "enabled": true,
+    "stage2_lm_gate": true,
+    "log_prompts": true,
+    "session_context_injection": true
+  },
+  "analysis": {
+    "threshold": 25,
+    "retention": 500
+  },
+  "overhead": {
+    "alert_threshold_tokens": 2000,
+    "alert_threshold_pct": 20
+  },
+  "model_routing": {
+    "mode": "platform",
+    "synthesis_always_capable": true,
+    "ollama": {
+      "enabled": false,
+      "base_url": "http://localhost:11434",
+      "model": "llama3.2",
+      "timeout_sec": 10
+    },
+    "cloud_free_apis": {
+      "enabled": false,
+      "_security_note": "Enabling this routes scrubbed prompts to third-party servers (Groq/Gemini/OpenRouter) outside the platform security boundary. Not recommended for enterprise use. Deferred to future release."
+    }
+  }
+}

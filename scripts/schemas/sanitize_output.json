@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PrismSanitizeOutput",
+  "description": "Structured output schema for Prism Subagent A (sanitization). Reports PII, injection risk, and produces a redacted prompt.",
+  "type": "object",
+  "properties": {
+    "pii_found": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of PII entity types detected (e.g. EMAIL, PHONE, API_KEY, SSN, NAME)"
+    },
+    "injection_risk": {
+      "type": "boolean",
+      "description": "True if prompt injection phrases were detected"
+    },
+    "injection_phrases": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The detected injection phrases (quoted)"
+    },
+    "ambiguous_authority": {
+      "type": "boolean",
+      "description": "True if the prompt contains ambiguous authority statements (persona hijacking attempts)"
+    },
+    "redacted_prompt": {
+      "type": "string",
+      "description": "The prompt with PII replaced by [TYPE_REDACTED] tokens"
+    },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Human-readable list of all detected issues with remediation hints"
+    },
+    "safe": {
+      "type": "boolean",
+      "description": "True if no blocking issues were found (pii_found empty AND injection_risk false)"
+    },
+    "rules_triggered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of sanitization rules that fired (e.g. san-001, san-005)"
+    }
+  },
+  "required": ["pii_found", "injection_risk", "safe"]
+}

@@ -1,0 +1,10 @@
+{
+  "prompt": "Refactor the authentication module to use JWT tokens instead of session cookies",
+  "_expected": {
+    "cursor": {"continue": true},
+    "claude_code": {"decision": "continue"},
+    "pii_found": [],
+    "injection_risk": false,
+    "safe": true
+  }
+}

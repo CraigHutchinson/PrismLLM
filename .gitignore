@@ -1,0 +1,50 @@
+# ── Prism runtime data (local only, never committed) ─────────────────────────
+.prism/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Testing & coverage ───────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.xml
+.tox/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.env
+.env.*
+venv/
+.venv/
+env/
+ENV/
+
+# ── Platform secrets & credentials ───────────────────────────────────────────
+*.pem
+*.key
+*.secret
+*.token
+secrets.json
+credentials.json
+.anthropic
+.openai
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

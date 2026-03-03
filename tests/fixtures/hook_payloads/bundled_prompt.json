@@ -1,0 +1,11 @@
+{
+  "prompt": "Add user registration, set up email verification, create the password reset flow, and write integration tests for all three features",
+  "_expected": {
+    "cursor": {"continue": true},
+    "claude_code": {"decision": "continue"},
+    "pii_found": [],
+    "injection_risk": false,
+    "safe": true,
+    "_note": "Bundling is a soft advisory (Stage 2), not a Stage 1 hard block"
+  }
+}

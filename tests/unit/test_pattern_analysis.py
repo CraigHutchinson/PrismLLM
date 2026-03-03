@@ -1,0 +1,114 @@
+"""
+Unit tests for scripts/pattern_analysis.py.
+Focuses on deterministic metric computation (no model calls).
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
+import pattern_analysis
+
+
+def test_empty_entries_returns_stable_trend():
+    profile = pattern_analysis.analyse_patterns([])
+    assert profile["trend"] == "stable"
+    assert profile["prompts_analysed"] == 0
+    assert profile["detected_patterns"] == []
+
+
+def test_efficiency_ratio_average(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    assert 0.0 < profile["avg_efficiency_ratio"] <= 1.0
+
+
+def test_avg_token_count_positive(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    assert profile["avg_token_count"] > 0
+
+
+def test_prompts_analysed_count(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    assert profile["prompts_analysed"] == len(prompt_log_fixture)
+
+
+def test_detects_royal_we_pattern(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    patterns = {p["pattern"]: p for p in profile["detected_patterns"]}
+    assert "we shall" in patterns or any(
+        p["category"] == "royal_we" for p in profile["detected_patterns"]
+    )
+
+
+def test_detected_pattern_has_required_fields(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    for p in profile["detected_patterns"]:
+        assert "pattern" in p
+        assert "category" in p
+        assert "frequency" in p
+        assert "suggestion" in p
+        assert 0.0 <= p["frequency"] <= 1.0
+
+
+def test_trend_values_are_valid(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    assert profile["trend"] in ("improving", "stable", "declining")
+
+
+def test_summary_is_non_empty(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    assert isinstance(profile["summary"], str)
+    assert len(profile["summary"]) > 10
+
+
+def test_compute_efficiency_trend_improving():
+    ratios = [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+    result = pattern_analysis._compute_efficiency_trend(ratios)
+    assert result == "improving"
+
+
+def test_compute_efficiency_trend_declining():
+    ratios = [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]
+    result = pattern_analysis._compute_efficiency_trend(ratios)
+    assert result == "declining"
+
+
+def test_compute_efficiency_trend_stable():
+    ratios = [0.85, 0.86, 0.85, 0.84, 0.85, 0.86]
+    result = pattern_analysis._compute_efficiency_trend(ratios)
+    assert result == "stable"
+
+
+def test_too_few_entries_for_trend():
+    result = pattern_analysis._compute_efficiency_trend([0.8, 0.9])
+    assert result == "stable"
+
+
+def test_generate_cursor_rule_contains_date(prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    rule = pattern_analysis.generate_cursor_rule(profile)
+    assert "alwaysApply: true" in rule
+    from datetime import date
+    assert date.today().isoformat() in rule
+
+
+def test_write_style_profile(tmp_path):
+    profile = {"detected_patterns": [], "avg_efficiency_ratio": 0.9,
+               "avg_token_count": 15, "trend": "stable", "prompts_analysed": 5}
+    path = tmp_path / "style-profile.json"
+    pattern_analysis.write_style_profile(profile, path)
+    assert path.exists()
+    import json
+    data = json.loads(path.read_text())
+    assert data["trend"] == "stable"
+
+
+def test_write_analysis_report(tmp_path, prompt_log_fixture):
+    profile = pattern_analysis.analyse_patterns(prompt_log_fixture)
+    report = pattern_analysis.write_analysis_report(profile, output_dir=tmp_path)
+    assert report.exists()
+    content = report.read_text()
+    assert "Prism Pattern Analysis" in content

@@ -1,0 +1,64 @@
+{
+  "_prism_version": "1.0",
+  "_note": "This file is written by /prism hook on. It configures Claude Code (and Cursor via third-party hooks compatibility). Do not edit manually — use /prism configure instead.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event sessionStart",
+            "_purpose": "Inject Prism mode context + check for overhead alert flag"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event userPromptSubmit",
+            "_purpose": "Stage 1: deterministic PII/injection scan (no model). Blocks critical issues. Logs prompt to .prism/prompt-log.jsonl after PII scrub."
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are Prism's quality gate (Stage 2). Evaluate the user's prompt and return ok:false with a concise 'reason' rewrite suggestion ONLY if ALL of the following apply: (1) the prompt is vague with no clear goal (under 10 words AND no measurable outcome), OR (2) the prompt bundles 4 or more unrelated tasks — suggest how to break them down, OR (3) the prompt uses only unmeasurable adjectives ('make it better', 'improve it') with zero context. Allow any prompt that is clear, specific, or single-focus. Do not block code reviews, refactoring requests, or any prompt with sufficient context. Return JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"...\"}",
+            "_purpose": "Stage 2: fast-model quality gate. Uses tool's built-in model budget. ~200t per prompt."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event preToolUse --stdin",
+            "_purpose": "Scan tool arguments for PII and injection phrases before execution"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{PRISM_ROOT}}/hooks/prism_preparser.py --event stop",
+            "_purpose": "Stop/sessionEnd: trigger pattern analysis if threshold reached; write session usage entry; check overhead alert threshold"
+          }
+        ]
+      }
+    ]
+  }
+}
