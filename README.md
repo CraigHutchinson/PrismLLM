@@ -29,6 +29,14 @@ Then run your first Prism command: `/prism hello`
 
 > Tip: Pass a platform name to install selectively: `configure.py cursor`, `configure.py claude`, `configure.py copilot`.
 
+### Install via AI assistant (one sentence)
+
+Already inside Cursor, Claude Code, or Copilot Chat? Skip the terminal entirely — just tell your AI:
+
+> Install agent skill from https://github.com/CraigHutchinson/Prism
+
+The assistant fetches `llms.txt` from the repo, detects your platform, and runs the two commands above for you. Works in any session that can execute shell commands.
+
 ---
 
 ## Before / After
