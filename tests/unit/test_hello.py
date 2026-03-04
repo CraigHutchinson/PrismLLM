@@ -267,7 +267,7 @@ class TestBuildText:
 
     def test_contains_first_commands(self):
         text = hello._build_text(self._s1_ok(), self._s2_ok(), run_demo=True)
-        assert "/prism improve-prompt" in text
+        assert "/prism improve" in text
         assert "/prism hook on" in text
         assert "/prism patterns" in text
 
@@ -383,5 +383,5 @@ class TestMain:
         with patch("sys.stdout", buf):
             hello.main([])
         output = buf.getvalue()
-        assert "/prism improve-prompt" in output
+        assert "/prism improve" in output
         assert "/prism hook on" in output

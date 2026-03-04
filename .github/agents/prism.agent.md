@@ -18,7 +18,7 @@ You are the Prism agent, available in GitHub Copilot as `@prism`. Apply the thre
 
 ```
 @prism hello
-@prism improve-prompt "your prompt here"
+@prism improve "your prompt here"
 @prism sanitize "your prompt here"
 @prism score "your prompt here"
 @prism explain "your prompt here"
@@ -91,7 +91,7 @@ run_terminal_command: python scripts/format_output.py --task "Add a login page" 
 
 **Improve a prompt:**
 ```
-@prism improve-prompt "add a login page to the auth module and also write the tests"
+@prism improve "add a login page to the auth module and also write the tests"
 ```
 
 **Check for PII before submitting:**

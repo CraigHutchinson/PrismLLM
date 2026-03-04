@@ -91,12 +91,12 @@ no constraints, no format preference.
 Issue 3 — Model Alignment: Claude 4 responds better to direct imperatives 
 with specific goals than to open-ended improvement requests.
 
-Suggested reframe — run /prism improve-prompt with:
+Suggested reframe — run /prism improve with:
   "Refactor [this function] to improve [readability|performance|security|test coverage].
    Apply [specific technique]. Keep [constraint]."
 ```
 
-### After (user ran `/prism improve-prompt` with context):
+### After (user ran `/prism improve` with context):
 ```xml
 <context>
 The following Python function handles user authentication.

@@ -3,7 +3,7 @@ name: prism
 description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
-  /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
+  /prism improve, /prism sanitize, /prism score, /prism explain,
   /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
   /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
@@ -35,7 +35,7 @@ metadata:
 
 This is the Claude Code variant of the Prism skill. It is identical to the Cursor `SKILL.md` with two additional capabilities:
 
-1. **Parallel sub-skill dispatch** via `context: fork` for `/prism improve-prompt`
+1. **Parallel sub-skill dispatch** via `context: fork` for `/prism improve`
 2. **`additionalContext` injection** from `UserPromptSubmit` hook (Stage 1 can inject suggestions, not just block)
 
 For full command documentation see `.cursor/skills/prism/SKILL.md`. All commands, routing, and output formats are identical.
@@ -75,9 +75,27 @@ On Claude Code the format is always xml — this is the preferred Claude upgrade
 
 ---
 
+## Prompt Resolution (all platforms)
+
+**Run this before any other step when handling `/prism improve`:**
+
+If no `"<prompt>"` argument was supplied (i.e. the user typed `/prism improve` with nothing after it):
+1. Look back at the conversation to find the most recent user message that is not a `/prism` command.
+2. Extract the full text of that message as the inferred prompt.
+3. Output this notice before proceeding (do not skip it):
+   > No prompt supplied — inferring from your last message:
+   > *"[inferred prompt text]"*
+   >
+   > Run `/prism improve "..."` with an explicit prompt to override.
+4. Continue the full pipeline using the inferred prompt as `<prompt>`.
+
+If no prior non-Prism message exists, output: "No prompt supplied and no prior message found. Please run `/prism improve \"your prompt\"`." and stop.
+
+---
+
 ## Claude Code-Specific: Parallel Sub-skills
 
-When running `/prism improve-prompt`, use Claude Code's Task tool to spawn three sub-skills in parallel:
+When running `/prism improve`, use Claude Code's Task tool to spawn three sub-skills in parallel:
 
 ```
 Dispatch simultaneously using Task tool (context: fork):

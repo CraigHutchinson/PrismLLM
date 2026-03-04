@@ -68,7 +68,7 @@ def test_write_and_read_component_sizes(tmp_path):
 
 def test_per_command_table_has_improve_prompt(tmp_path):
     result = overhead_calc.run(root=tmp_path, output_path=tmp_path / ".prism" / "sizes.json")
-    assert "/prism improve-prompt" in result["per_command_overhead"]
+    assert "/prism improve" in result["per_command_overhead"]
 
 
 def test_build_command_table_returns_integers(tmp_path):

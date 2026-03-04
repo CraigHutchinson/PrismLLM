@@ -2,7 +2,7 @@
 name: prism-sanitize
 description: >
   Internal Prism sub-skill for sanitization analysis. Dispatched by the main prism skill
-  for /prism improve-prompt. NOT user-invocable directly.
+  for /prism improve. NOT user-invocable directly.
 user-invocable: false
 context: fork
 model: claude-haiku-4-5

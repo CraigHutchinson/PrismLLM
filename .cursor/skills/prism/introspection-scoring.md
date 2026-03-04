@@ -84,8 +84,8 @@ Each dimension is independently scored; the sum gives the total ARS. A prompt wi
 |----------|-------|---------------------|
 | **90–100** | Excellent | Proceed as-is. Optional minor tweaks. |
 | **75–89** | Good | Minor tweaks suggested. Review dimension(s) below 8. |
-| **60–74** | Needs work | Specific improvements listed. Consider `/prism improve-prompt`. |
-| **40–59** | Poor | `/prism improve-prompt` strongly recommended. Do not use in production without refinement. |
+| **60–74** | Needs work | Specific improvements listed. Consider `/prism improve`. |
+| **40–59** | Poor | `/prism improve` strongly recommended. Do not use in production without refinement. |
 | **0–39** | Unusable | Block or require rewrite. Critical issues (security, structure, or alignment) must be addressed. |
 
 ### Per-Dimension Guidance

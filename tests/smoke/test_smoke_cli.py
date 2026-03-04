@@ -55,7 +55,7 @@ class TestHelloCli:
     def test_contains_first_commands(self):
         result = run_script("hello.py")
         assert result.returncode == 0
-        assert "/prism improve-prompt" in result.stdout
+        assert "/prism improve" in result.stdout
         assert "/prism hook on" in result.stdout
 
 

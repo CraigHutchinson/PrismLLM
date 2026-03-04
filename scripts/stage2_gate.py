@@ -75,7 +75,7 @@ def evaluate_prompt(text: str) -> dict:
             "ok": False,
             "reason": (
                 "Prompt bundles multiple unrelated tasks. Split into separate prompts "
-                "for better results. Run `/prism improve-prompt` to restructure."
+                "for better results. Run `/prism improve` to restructure."
             ),
         }
 

@@ -37,7 +37,7 @@ write a python function that checks if a string is a valid email also add
 some unit tests and maybe handle edge cases like empty strings
 ```
 
-After `/prism improve-prompt` — Markdown (default, works on all models):
+After `/prism improve` — Markdown (default, works on all models):
 
 ```markdown
 ## Task
@@ -70,7 +70,7 @@ On Cursor or Claude Code, Prism auto-upgrades to XML (`ref-017`):
 <constraints>Regex only — no third-party packages. Return False for invalid input, do not raise.</constraints>
 ```
 
-> Try it yourself: paste the "before" prompt into your AI chat, then run `/prism improve-prompt` on it. The output above is what Prism produces.
+> Try it yourself: paste the "before" prompt into your AI chat, then run `/prism improve` on it. The output above is what Prism produces.
 
 ---
 
@@ -222,7 +222,7 @@ If any check fails, a one-line fix hint is printed alongside the failure.
 
 | Command | What it does | Model cost |
 |---------|-------------|-----------|
-| `/prism improve-prompt "..."` | Full pipeline: sanitize → score → refract → rewrite with Why Log | Fast × 3 + Capable × 1 |
+| `/prism improve "..."` | Full pipeline: sanitize → score → refract → rewrite with Why Log | Fast × 3 + Capable × 1 |
 | `/prism format` | Show active structural format (markdown/xml/prefixed) for this platform | None |
 | `/prism sanitize "..."` | Privacy & security scan — flags personal data, API keys, prompt hijacking (PII check) | None (script) |
 | `/prism score "..."` | 5-dimension Agentic Readiness Score (0–100) + tips | Fast model |
@@ -264,13 +264,13 @@ Prism selects the optimal structural syntax based on the detected platform. The 
 | **XML** | `<task>` / `<context>` | Claude 3.5+ only | Cursor or Claude Code detected |
 | **Prefixed** | `TASK:` / `CONTEXT:` | Constrained contexts, older models | Explicit `--format prefixed` only |
 
-Override at any time: `/prism improve-prompt "..." --format xml`
+Override at any time: `/prism improve "..." --format xml`
 
 ---
 
 ## Output Format
 
-Every `/prism improve-prompt` response follows this structure:
+Every `/prism improve` response follows this structure:
 
 ```
 ### Prism-Optimized Prompt

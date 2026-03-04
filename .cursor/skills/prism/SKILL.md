@@ -3,7 +3,7 @@ name: prism
 description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
-  /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
+  /prism improve, /prism sanitize, /prism score, /prism explain,
   /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
   /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
@@ -33,11 +33,11 @@ If `.prism/prism.config.json` does not exist, run first-run initialisation:
 1. Run `python scripts/overhead_calc.py --root .` to create `.prism/component-sizes.json`
 2. Copy `scripts/prism_config_default.json` to `.prism/prism.config.json`
 3. Create empty `.prism/usage-log.jsonl`, `.prism/usage-summary.json`, `.prism/prompt-log.jsonl`
-4. Output: "Prism initialised ✓ Three modes available: on-demand (/prism improve-prompt), hook (/prism hook on), patterns (/prism patterns)"
+4. Output: "Prism initialised ✓ Three modes available: on-demand (/prism improve), hook (/prism hook on), patterns (/prism patterns)"
 
 ## Command Dispatch
 
-Route the user's command to the correct handler below. Load ONLY the playbook relevant to the command — do not load all three at once unless running `improve-prompt`.
+Route the user's command to the correct handler below. Load ONLY the playbook relevant to the command — do not load all three at once unless running `improve`.
 
 ---
 
@@ -75,9 +75,23 @@ Format rules: `ref-016` (markdown default), `ref-017` (xml for Claude), `ref-018
 
 ---
 
-## `/prism improve-prompt "<prompt>"`
+## `/prism improve "<prompt>"`
 
 **Model routing:** Fast model for Subagents A/B/C (parallel in Claude Code, sequential in Cursor). Capable model for synthesis.
+
+**Prompt Resolution — run before any other step:**
+
+If no `"<prompt>"` argument was supplied (i.e. the user typed `/prism improve` with nothing after it):
+1. Look back at the conversation to find the most recent user message that is not a `/prism` command.
+2. Extract the full text of that message as the inferred prompt.
+3. Output this notice before proceeding (do not skip it):
+   > No prompt supplied — inferring from your last message:
+   > *"[inferred prompt text]"*
+   >
+   > Run `/prism improve "..."` with an explicit prompt to override.
+4. Continue the full pipeline below using the inferred prompt as `<prompt>`.
+
+If no prior non-Prism message exists, output: "No prompt supplied and no prior message found. Please run `/prism improve \"your prompt\"`." and stop.
 
 **Step 0 — Detect output format (no model):**
 ```bash
@@ -192,7 +206,7 @@ Load `introspection-scoring.md`. Score the prompt on all 5 ARS dimensions. Outpu
 
 **Model routing:** Fast model only.
 
-Load `refraction-playbook.md`. Diagnose the prompt's weaknesses without rewriting it. List each issue with the specific rule that applies and the suggested fix. End with: "Run `/prism improve-prompt` to apply all fixes automatically."
+Load `refraction-playbook.md`. Diagnose the prompt's weaknesses without rewriting it. List each issue with the specific rule that applies and the suggested fix. End with: "Run `/prism improve` to apply all fixes automatically."
 
 ---
 
@@ -278,7 +292,7 @@ Format as a table showing last 30 sessions: date, platform, prism_tokens, sessio
 
 Read `usage-summary.json` and `.prism/component-sizes.json`. Suggest specific config toggles to reduce overhead. Example suggestions:
 - "Stage 2 fires on every prompt but your recent scores average 87/100 → consider `/prism configure hook.stage2_lm_gate=false` (~200t/prompt saved)"
-- "refraction-playbook.md is loaded on every command → it is only needed for improve-prompt and explain"
+- "refraction-playbook.md is loaded on every command → it is only needed for improve and explain"
 
 ## `/prism configure [key=value]`
 
@@ -309,11 +323,11 @@ Each entry: `- [PILLAR] description [rule: ID, source: type]`
 - 90-100: Excellent — proceed as-is
 - 75-89:  Good — minor suggestions only
 - 60-74:  Needs work — specific improvements shown
-- 40-59:  Poor — `/prism improve-prompt` strongly recommended
+- 40-59:  Poor — `/prism improve` strongly recommended
 - 0-39:   Unusable — rewrite required
 
 ### Overhead note
-Always append an overhead summary to `/prism improve-prompt` responses:
+Always append an overhead summary to `/prism improve` responses:
 ```
 ### Prism Overhead This Run: ~XXXt
 Tip: /prism usage --optimize to see if any components can be trimmed.
@@ -343,7 +357,7 @@ python scripts/kb_query.py --source official --pillar sanitization
 
 ## Notes for Cursor (vs Claude Code)
 
-- **No `context: fork`**: Run improve-prompt sequentially. Load one playbook at a time using `Read` tool.
+- **No `context: fork`**: Run improve sequentially. Load one playbook at a time using `Read` tool.
 - **No `additionalContext` injection**: Stage 1 can block but cannot add suggestions inline.
 - **Hook format**: Cursor reads `.claude/settings.json` via third-party hooks compatibility.
 - **Personal style rule**: `/prism patterns --apply` writes `.cursor/rules/prism-personal-style.mdc`.

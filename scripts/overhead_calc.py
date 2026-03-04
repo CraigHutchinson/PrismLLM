@@ -38,7 +38,7 @@ COMPONENT_PATHS: Dict[str, str] = {
 }
 
 PER_COMMAND_OVERHEAD: Dict[str, list[str]] = {
-    "/prism improve-prompt": [
+    "/prism improve": [
         "skill_md", "refraction_playbook", "sanitization_rules",
         "introspection_scoring", "pii_scan", "kb_query",
     ],
@@ -92,7 +92,7 @@ def build_command_table(component_sizes: Dict[str, Any]) -> Dict[str, int]:
             component_sizes.get(c, {}).get("tokens_est", 0)
             for c in components
         )
-        if cmd == "/prism improve-prompt":
+        if cmd == "/prism improve":
             total += 3 * 100
         table[cmd] = total
     table["hook_stage2"] = HOOK_STAGE2_TOKENS

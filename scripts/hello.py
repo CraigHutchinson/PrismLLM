@@ -173,7 +173,7 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
 
         lines += [
             "",
-            "  This prompt scores ~22/100 (ARS). After /prism improve-prompt:",
+            "  This prompt scores ~22/100 (ARS). After /prism improve:",
             "    \u2022 Format: markdown (portable default, ref-016)" if uni
             else "    * Format: markdown (portable default, ref-016)",
             "    \u2022 Bundled task split into two numbered steps (ref-007)" if uni
@@ -193,7 +193,7 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
     lines.append("  Your First Commands")
     lines.append(rule)
     lines += [
-        "  /prism improve-prompt \"your prompt\"   Full pipeline + rewrite",
+        "  /prism improve \"your prompt\"   Full pipeline + rewrite",
         "  /prism format                         Show active structural format",
         "  /prism sanitize \"your prompt\"         Privacy & security scan",
         "  /prism score \"your prompt\"            Quick quality score (0-100)",
@@ -202,7 +202,7 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
         "  /prism patterns                       Analyse your writing habits",
         "",
         "  Try it now:",
-        f'  /prism improve-prompt "{DEMO_PROMPT}"',
+        f'  /prism improve "{DEMO_PROMPT}"',
         "",
         "  Token overhead: ~0t (no model calls, no KB load)",
     ]
@@ -219,7 +219,7 @@ def _build_json(stage1: dict, stage2: dict, run_demo: bool) -> dict:
         "stage2": stage2 if run_demo else None,
         "pillars": ["Refraction", "Sanitization", "Introspection"],
         "commands": [
-            "/prism improve-prompt",
+            "/prism improve",
             "/prism sanitize",
             "/prism score",
             "/prism explain",

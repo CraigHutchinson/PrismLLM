@@ -28,7 +28,7 @@ Every optimised prompt comes with a scored readout: how well-structured, how spe
 Prism lives inside the tools you already use. One command activates the full analysis pipeline:
 
 ```
-/prism improve-prompt "add a login page to the auth module and also write the tests"
+/prism improve "add a login page to the auth module and also write the tests"
 ```
 
 Or turn on the always-on hook, and Prism silently analyses every prompt before it reaches the model — surfacing suggestions without interrupting your flow:
@@ -138,7 +138,7 @@ A cross-platform Agent Skill package supporting Cursor, Claude Code, and GitHub 
 | `hook-preparser` | Create `hooks/prism_preparser.py`: beforeSubmitPrompt command hook — Stage 1 is pure regex (no model), outputs platform-appropriate JSON (Cursor: continue+user_message, Claude Code: decision+additionalContext). Keep under 50ms. | 3 | Orchestrator | pending |
 | `stop-hook` | Add stop/sessionEnd hook to `.claude/settings.json` template: checks `.prism/.analysis-needed` flag (set by preparser when log crosses threshold, default 25 entries). If set, runs pattern_analysis.py in background and clears flag. Also writes session overhead entry to usage-log.jsonl and checks alert threshold. | 3 | Fast model | pending |
 | `overhead-alert` | In stop hook: if overhead_pct > threshold (default 20%) or prism_tokens_est > absolute limit (default 2000), write `.prism/.overhead-alert` with reason. In sessionStart hook: check for flag, inject advisory as additionalContext: "Prism overhead was high (X tokens, Y%). Run `/prism usage --optimize` or `/prism hook off` to reduce it." Clear flag after injection. | 3 | Fast model | pending |
-| `skill-main` | Create `SKILL.md`: frontmatter (disable-model-invocation: true, allowed-tools, argument-hint, metadata), model-routed command dispatch (hook on/off = no model; score/sanitize/explain = fast; improve-prompt = parallel subagents + synthesis), progressive disclosure links | 3 | Orchestrator | pending |
+| `skill-main` | Create `SKILL.md`: frontmatter (disable-model-invocation: true, allowed-tools, argument-hint, metadata), model-routed command dispatch (hook on/off = no model; score/sanitize/explain = fast; improve = parallel subagents + synthesis), progressive disclosure links | 3 | Orchestrator | pending |
 | `sub-skills` | Create Claude Code sub-skills (user-invocable: false, context: fork, model: claude-haiku-4-5): prism-sanitize/SKILL.md, prism-score/SKILL.md, prism-refract/SKILL.md. Each loads one playbook and outputs structured JSON for the synthesis agent. Copilot equivalent: skill body instructs agent to use GPT-4.1 (0-multiplier model) by name. Include Cursor fallback note (sequential execution, built-in fast model). | 4 | Fast model | pending |
 | `platform-claude-code` | Create `.claude/skills/prism/SKILL.md`: identical to Cursor SKILL.md (both follow AgentSkills.io standard). Add Claude Code-only frontmatter fields: allowed-tools, argument-hint, hooks (skill-scoped). | 4 | Fast model | pending |
 | `platform-copilot` | Create `.github/agents/prism.agent.md`: GitHub Copilot custom agent (translated from SKILL.md, uses Copilot frontmatter: name, description, disable-model-invocation, tools). | 4 | Fast model | pending |
@@ -247,9 +247,9 @@ flowchart TD
 
         Dispatch -->|"hook on/off/status"| MechOp["Mechanical Op\nNo model — copy template files"]
         Dispatch -->|"score / sanitize / explain"| FastPath["Fast Model\n+ load single playbook only\n+ kb_query.py"]
-        Dispatch -->|"improve-prompt"| ParallelPath
+        Dispatch -->|"improve"| ParallelPath
 
-        subgraph ParallelPath ["improve-prompt — Parallel Subagents"]
+        subgraph ParallelPath ["improve — Parallel Subagents"]
             direction LR
             PY["pii_scan.py\nNo model — instant"] --> SA
             SA["Subagent A: Sanitization\nFast model\nload sanitization-rules.md only"]
@@ -454,7 +454,7 @@ Ollama runs entirely on-device — no data leaves the machine. It is the only se
 | Refraction planning (Subagent C) | GPT-4.1 / Haiku | Ollama Llama 3.2 | — |
 | Pattern analysis (batch) | GPT-4.1 / Haiku | Ollama Llama 3.2 | — |
 | `/prism usage --optimize` | GPT-4.1 / Haiku | Ollama Llama 3.2 | — |
-| `improve-prompt` synthesis | **Always capable** | **Always capable** | `synthesis_always_capable: true` |
+| `improve` synthesis | **Always capable** | **Always capable** | `synthesis_always_capable: true` |
 | Hook Stage 2 quality gate | Built-in (tool budget) | Built-in (tool budget) | — |
 
 ### Structured Output Schemas
@@ -479,7 +479,7 @@ Fast/lightweight models produce reliable results when output is schema-constrain
 
 ### Token Budget Impact
 
-| Mode | Tool premium tokens (improve-prompt) | Security boundary |
+| Mode | Tool premium tokens (improve) | Security boundary |
 |---|---|---|
 | `capable` (all steps) | ~3,500t | Platform |
 | `platform` (default) | ~500-700t (synthesis only) | Platform ✅ |
@@ -498,13 +498,13 @@ Every Prism operation is assigned to the lightest viable execution tier. The SKI
 | `sanitize` | Platform lightweight | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
 | `score` | Platform lightweight | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
 | `explain` | Platform lightweight | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
-| `improve-prompt` Subagents A/B/C | Platform lightweight (fork) | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
-| `improve-prompt` Synthesis | Capable (always) | Claude Sonnet 4.6 / Opus 4.6 | claude-sonnet / opus |
+| `improve` Subagents A/B/C | Platform lightweight (fork) | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
+| `improve` Synthesis | Capable (always) | Claude Sonnet 4.6 / Opus 4.6 | claude-sonnet / opus |
 | Hook Stage 2 quality gate | Built-in fast | Tool budget (within platform) | Tool budget (within platform) |
 | Pattern analysis | Platform lightweight | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
 | `/prism usage --optimize` | Platform lightweight | GPT-4.1 (0 multiplier) | claude-haiku-4-5 |
 
-**Rule:** The capable model only touches the final synthesis step of `improve-prompt`. `synthesis_always_capable: true` in config enforces this regardless of `mode`. All other analysis steps use the platform's own cheapest model — no data leaves the platform's security boundary by default.
+**Rule:** The capable model only touches the final synthesis step of `improve`. `synthesis_always_capable: true` in config enforces this regardless of `mode`. All other analysis steps use the platform's own cheapest model — no data leaves the platform's security boundary by default.
 
 ### Sub-skills for parallel dispatch (Claude Code)
 
@@ -518,7 +518,7 @@ Claude Code's `context: fork` and `user-invocable: false` frontmatter enable int
 └── prism-refract/SKILL.md      ← user-invocable: false, context: fork, model: claude-haiku-4-5
 ```
 
-The main skill's `improve-prompt` handler spawns all three sub-skills in parallel using the Task tool, then merges their structured JSON outputs in the synthesis step. In Cursor (which does not support `context: fork`), the SKILL.md falls back to sequential single-agent execution with explicit instructions to load only one playbook at a time.
+The main skill's `improve` handler spawns all three sub-skills in parallel using the Task tool, then merges their structured JSON outputs in the synthesis step. In Cursor (which does not support `context: fork`), the SKILL.md falls back to sequential single-agent execution with explicit instructions to load only one playbook at a time.
 
 ## Knowledge Base Schema
 
@@ -658,7 +658,7 @@ flowchart LR
 name: prism
 description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
-  (Refraction, Sanitization, Introspection). Use when the user runs /prism improve-prompt,
+  (Refraction, Sanitization, Introspection). Use when the user runs /prism improve,
   /prism sanitize, /prism score, /prism explain, /prism hook on/off/status,
   or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
@@ -677,7 +677,7 @@ Fields `argument-hint` and `allowed-tools` are Claude Code-only (silently ignore
 
 **Explicit analysis (on-demand):**
 
-- `/prism improve-prompt "..."` - Full pipeline. Fast-model subagents run the three pillars in parallel; capable model synthesizes. In Cursor (no `context: fork`), runs sequentially loading one playbook at a time.
+- `/prism improve "..."` - Full pipeline. Fast-model subagents run the three pillars in parallel; capable model synthesizes. In Cursor (no `context: fork`), runs sequentially loading one playbook at a time.
 - `/prism sanitize "..."` - Fast model only. Runs `pii_scan.py` first (no model), then fast model for semantic ambiguity check.
 - `/prism score "..."` - Fast model only. Loads `introspection-scoring.md` + KB `apply_cost:fast` rules; outputs structured 5-dimension score.
 - `/prism explain "..."` - Fast model only. Diagnosis pass without rewriting.
@@ -747,11 +747,11 @@ Prism adds overhead at two levels: **always-on** (hooks, session context) and **
 | Hook Stage 1 (`prism_preparser.py`) | 0t | Every prompt | All (script only) |
 | Hook Stage 2 (prompt-based LLM gate) | ~200t | Every prompt (hook on) | Cursor + Claude Code — **Cursor's model budget** |
 | `SKILL.md` load | ~400t | Any `/prism` command | All |
-| `refraction-playbook.md` | ~600t | `improve-prompt`, `explain` | All |
-| `sanitization-rules.md` | ~400t | `sanitize`, `improve-prompt` | All |
-| `introspection-scoring.md` | ~500t | `score`, `improve-prompt` | All |
+| `refraction-playbook.md` | ~600t | `improve`, `explain` | All |
+| `sanitization-rules.md` | ~400t | `sanitize`, `improve` | All |
+| `introspection-scoring.md` | ~500t | `score`, `improve` | All |
 | KB query result (avg filter) | ~300t | Any `/prism` command | All |
-| Sub-skill fork overhead | ~100t each | `improve-prompt` parallel | Claude Code only |
+| Sub-skill fork overhead | ~100t each | `improve` parallel | Claude Code only |
 | `.github/agents/prism.agent.md` | ~400t | When Copilot agent selected | Copilot only |
 
 **Hook Stage 2 note:** The prompt-based quality gate uses the tool's built-in model budget (Cursor's own allocation, not the user's API tokens). It does not charge against the user's Anthropic API account when used through Cursor/Claude Code directly.
@@ -765,7 +765,7 @@ Prism adds overhead at two levels: **always-on** (hooks, session context) and **
   "ts": 1740995200,
   "platform": "cursor",
   "session_id": "abc123",
-  "commands_run": ["/prism improve-prompt", "/prism score"],
+  "commands_run": ["/prism improve", "/prism score"],
   "hook_stages_fired": { "stage1": 12, "stage2": 11 },
   "prism_tokens_est": 1840,
   "session_tokens_est": 9200,
@@ -826,7 +826,7 @@ Set via `/prism configure key=value` (no model — pure JSON write). Useful esca
 
 ### Prism Overhead in the Why Log
 
-Every `/prism improve-prompt` response appends a self-audit section, making Prism's cost transparent:
+Every `/prism improve` response appends a self-audit section, making Prism's cost transparent:
 
 ```
 ### Prism Overhead This Run: ~1,340 tokens
@@ -936,7 +936,7 @@ This closes the loop: the Introspection pillar's batch analysis feeds back into 
 
 ## Output Format
 
-**Skill mode response (`/prism improve-prompt`):**
+**Skill mode response (`/prism improve`):**
 
 ```
 ### Prism-Optimized Prompt
@@ -964,9 +964,9 @@ This closes the loop: the Introspection pillar's batch analysis feeds back into 
 Prism Hook blocked this prompt.
 
 Reason: Your prompt bundles 3 distinct tasks. Suggested sub-tasks:
-  1. /prism improve-prompt "Set up the database schema"
-  2. /prism improve-prompt "Write the API endpoints"
-  3. /prism improve-prompt "Add error handling"
+  1. /prism improve "Set up the database schema"
+  2. /prism improve "Write the API endpoints"
+  3. /prism improve "Add error handling"
 
 Rephrase or send again to override.
 ```
@@ -1054,13 +1054,13 @@ Coverage target: **80% overall**, **100% for `pii_scan.py` and `prism_preparser.
 
 For the agent reasoning layer (SKILL.md) and Claude Code sub-skills, a manual checklist in `tests/MANUAL_TESTS.md` covers:
 
-- [ ] `/prism improve-prompt "vague"` — returns structured output with Why Log and ARS score
+- [ ] `/prism improve "vague"` — returns structured output with Why Log and ARS score
 - [ ] `/prism hook on` — creates `.claude/settings.json` and `.github/hooks/prism_hooks.json`
 - [ ] `/prism hook on` followed by sending a prompt containing an email → hook blocks it
 - [ ] `/prism patterns` with 0 log entries → graceful "not enough data" message
 - [ ] `/prism usage` with no prior sessions → graceful empty state
-- [ ] Claude Code parallel fork (`improve-prompt`) — three subagents visible in trace
-- [ ] Cursor sequential fallback (`improve-prompt`) — single agent, three playbook loads logged
+- [ ] Claude Code parallel fork (`improve`) — three subagents visible in trace
+- [ ] Cursor sequential fallback (`improve`) — single agent, three playbook loads logged
 
 ## Installation & First-Run Experience
 

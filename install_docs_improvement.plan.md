@@ -128,7 +128,7 @@ Prism Install Verifier v1
 ✓ .prism/ write-able
 
 All 10 checks passed. Prism is ready to use.
-Run: /prism improve-prompt "your first prompt here"
+Run: /prism improve "your first prompt here"
 ```
 
 On failure, each check prints a one-line fix action:

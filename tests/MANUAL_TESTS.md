@@ -16,8 +16,8 @@ Run these manually before each release against a live IDE session.
 
 ## Test Group 1: Core Skill Commands
 
-### MT-01: `/prism improve-prompt` — basic
-- [ ] Run: `/prism improve-prompt "add a login page to the auth module and also write the tests"`
+### MT-01: `/prism improve` — basic
+- [ ] Run: `/prism improve "add a login page to the auth module and also write the tests"`
 - [ ] Expected: Structured output with XML-tagged prompt, Why Log with at least 2 entries, ARS score out of 100
 - [ ] Expected: Score includes structure, specificity, security, cache_friendliness, model_alignment dimensions
 
@@ -116,17 +116,17 @@ Run these manually before each release against a live IDE session.
 
 ## Test Group 5: Platform-Specific
 
-### MT-19: Claude Code parallel fork (improve-prompt)
-- [ ] Run `/prism improve-prompt "..."` in Claude Code
+### MT-19: Claude Code parallel fork (improve)
+- [ ] Run `/prism improve "..."` in Claude Code
 - [ ] Expected: Three subagents visible in Claude Code's reasoning trace (prism-sanitize, prism-score, prism-refract)
 - [ ] Expected: Final synthesis uses capable model
 
-### MT-20: Cursor sequential fallback (improve-prompt)
-- [ ] Run `/prism improve-prompt "..."` in Cursor
+### MT-20: Cursor sequential fallback (improve)
+- [ ] Run `/prism improve "..."` in Cursor
 - [ ] Expected: Single agent, playbooks loaded one at a time, sequential execution logged
 
 ### MT-21: Copilot agent invocation
-- [ ] Invoke via `@prism improve-prompt "..."` in Copilot Chat
+- [ ] Invoke via `@prism improve "..."` in Copilot Chat
 - [ ] Expected: Agent responds with structured analysis
 
 ### MT-22: Copilot preToolUse blocking
