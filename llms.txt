@@ -1,0 +1,90 @@
+# Prism — Prompt Engineering Agent Skill
+
+> Treat your prompts like code. Prism optimizes, sanitizes, and scores prompts
+> before they reach the model — living inside Cursor, Claude Code, or GitHub Copilot.
+> No subscription. No new tools. Zero data leaves your platform.
+
+## Install (2 commands)
+
+**macOS / Linux:**
+```bash
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
+python ~/.prism-skill/configure.py
+```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
+python "$env:USERPROFILE\.prism-skill\configure.py"
+```
+
+`configure.py` with no arguments:
+- Installs for **all three platforms** (Cursor → global `~/.cursor/skills/`, Claude Code → project `.claude/skills/`, Copilot → project `.github/`)
+- Runs `pip install -r requirements.txt` automatically
+- Runs a 10-point health check and prints a fix hint for any failure
+
+Pass a platform name to install selectively: `configure.py cursor`, `configure.py claude`, `configure.py copilot`.
+
+**Restart Cursor** after running if you are installing for Cursor.
+
+## First command after install
+
+```
+/prism hello
+```
+
+Prints an interactive intro, the three pillars, and a live Stage 1 + Stage 2 demo.
+
+## Key commands
+
+| Command | What it does | Model cost |
+|---------|-------------|-----------|
+| `/prism improve "..."` | Full pipeline: sanitize → score → restructure → rewrite with Why Log | Fast × 3 + Capable × 1 |
+| `/prism hook on` | Enable pre-flight scan on every prompt you submit | None (script) |
+| `/prism hook off` | Disable hooks | — |
+| `/prism sanitize "..."` | Privacy & security scan — flags personal data, API keys, injection | None (script) |
+| `/prism score "..."` | 5-dimension Agentic Readiness Score (0–100) + improvement tips | Fast model |
+| `/prism explain "..."` | Diagnose a prompt's weaknesses without rewriting it | Fast model |
+| `/prism patterns` | Analyse your personal prompt writing habits | Fast model |
+| `/prism usage` | Show 30-session token overhead history | None |
+
+## The three pillars
+
+- **Refraction** — Restructures prompts: XML tags, CoT triggers, task decomposition, output constraints
+- **Sanitization** — Scans for PII, API keys, and prompt injection *before* any model call (pure regex, zero cost)
+- **Introspection** — Scores 0–100 across 5 dimensions; learns your personal writing patterns over time
+
+## Verify the install
+
+```bash
+python ~/.prism-skill/scripts/verify_install.py        # macOS / Linux
+python "$env:USERPROFILE\.prism-skill\scripts\verify_install.py"  # Windows PowerShell
+```
+
+A healthy install prints: `All 10 checks passed. Prism is ready.`
+
+## Check installation status
+
+```bash
+python ~/.prism-skill/configure.py status
+```
+
+## Update
+
+```bash
+cd ~/.prism-skill && git pull
+python configure.py --force    # re-copy updated files into place
+```
+
+## Uninstall
+
+```bash
+python ~/.prism-skill/configure.py remove cursor
+python ~/.prism-skill/configure.py remove claude
+python ~/.prism-skill/configure.py remove copilot
+```
+
+## Documentation
+
+- Full README: https://github.com/CraigHutchinson/Prism/blob/main/README.md
+- Source: https://github.com/CraigHutchinson/Prism

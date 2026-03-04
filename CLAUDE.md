@@ -1,5 +1,27 @@
 # Prism — Always-On Prompt Engineering Assistant
 
+## Installing Prism (first-time setup)
+
+If you are in a **fresh session** and the `.prism/` directory does not yet exist in this workspace, Prism has not been initialised. Run the install commands below, then come back and use the commands in the next section.
+
+**macOS / Linux:**
+```bash
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
+python ~/.prism-skill/configure.py
+```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
+python "$env:USERPROFILE\.prism-skill\configure.py"
+```
+
+`configure.py` installs for all platforms (Cursor, Claude Code, Copilot), installs Python dependencies, and runs a health check. Restart Cursor after running if installing for Cursor.
+
+Run `/prism hello` once installed to confirm everything is working.
+
+---
+
 The **Prism** skill is available in this repository for prompt analysis, optimization, and security scanning.
 
 ## What Prism Does
@@ -32,7 +54,7 @@ Prism applies a three-pillar methodology to every prompt before it reaches the A
 
 ## More Information
 
-See `README.md` for full installation and command reference, or run `/prism explain` for an inline tour.
+See `README.md` for full installation and command reference, `llms.txt` for a compact LLM-optimized install card, or run `/prism explain` for an inline tour.
 
 <!-- PRISM_PERSONAL_STYLE_START -->
 <!-- PRISM_PERSONAL_STYLE_END -->
