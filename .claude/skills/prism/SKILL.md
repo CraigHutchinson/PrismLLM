@@ -2,10 +2,10 @@
 name: prism
 description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
-  (Refraction, Sanitization, Introspection). Use when the user runs /prism improve-prompt,
-  /prism sanitize, /prism score, /prism explain, /prism hook on/off/status,
-  /prism patterns, /prism usage, /prism configure, or asks to optimize or analyze
-  a prompt for an AI model.
+  (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
+  /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
+  /prism hook on/off/status, /prism patterns, /prism usage, /prism configure,
+  or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""
 allowed-tools: Read, Bash
@@ -39,6 +39,18 @@ This is the Claude Code variant of the Prism skill. It is identical to the Curso
 2. **`additionalContext` injection** from `UserPromptSubmit` hook (Stage 1 can inject suggestions, not just block)
 
 For full command documentation see `.cursor/skills/prism/SKILL.md`. All commands, routing, and output formats are identical.
+
+## `/prism hello`
+
+**Model routing:** None — deterministic script.
+
+```bash
+python scripts/hello.py
+```
+
+Prints a live introduction: three pillars, real-time Stage 1 + Stage 2 demo on a built-in sample prompt, and top first commands. Output the script's stdout verbatim. This is the recommended first command for new users.
+
+---
 
 ## Claude Code-Specific: Parallel Sub-skills
 

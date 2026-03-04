@@ -129,7 +129,7 @@ Prism Install Verifier
 ======================
 ✓ Python 3.11 (>= 3.9 required)
 ✓ jsonschema installed
-✓ All 8 scripts present
+✓ All 9 core scripts present
 ✓ Hook script present
 ✓ Data files present
 ✓ JSON schemas valid (4 schemas, 35 rules)
@@ -144,12 +144,19 @@ Run: /prism improve-prompt "your first prompt here"
 
 If any check fails, a one-line fix hint is printed alongside the failure.
 
+Then run your first Prism command to get an interactive introduction with a live demo:
+
+```
+/prism hello
+```
+
 ---
 
 ## The Five Most-Used Commands
 
 | Command | What it does | Model cost |
 |---------|-------------|-----------|
+| `/prism hello` | Interactive intro + live Stage 1/Stage 2 demo on a sample prompt | None |
 | `/prism improve-prompt "..."` | Full pipeline: sanitize → score → refract → rewrite with Why Log | Fast × 3 + Capable × 1 |
 | `/prism sanitize "..."` | PII + injection scan + semantic ambiguity check | Fast model |
 | `/prism score "..."` | 5-dimension Agentic Readiness Score (0-100) | Fast model |
@@ -157,6 +164,11 @@ If any check fails, a one-line fix hint is printed alongside the failure.
 | `/prism patterns` | Analyse your personal writing habits for terse suggestions | Fast model |
 
 ### Full Command Reference
+
+**Getting started:**
+```
+/prism hello                          Interactive intro + live demo (start here)
+```
 
 **Analysis (on-demand):**
 ```
@@ -304,6 +316,7 @@ PrismLLM/
 │   ├── platform_model.py      ← Platform detection + model router
 │   ├── pattern_analysis.py    ← Prompt log analyser
 │   ├── usage_log.py           ← Session overhead log management
+│   ├── hello.py               ← /prism hello intro command + live demo (no model)
 │   ├── hook_installer.py      ← /prism hook on|off|status (idempotent)
 │   ├── stage2_gate.py         ← Stage 2 deterministic quality gate (no model)
 │   ├── verify_install.py      ← Post-install health checker (10 checks)

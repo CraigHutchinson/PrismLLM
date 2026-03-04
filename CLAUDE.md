@@ -13,6 +13,7 @@ Prism applies a three-pillar methodology to every prompt before it reaches the A
 ## How to Use It
 
 ```
+/prism hello                                           Interactive intro + live demo
 /prism improve-prompt "add a login page to the auth module and also write the tests"
 /prism sanitize "send results to user@example.com when done"
 /prism score "refactor the database connection pool"

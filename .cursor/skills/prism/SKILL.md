@@ -2,10 +2,10 @@
 name: prism
 description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
-  (Refraction, Sanitization, Introspection). Use when the user runs /prism improve-prompt,
-  /prism sanitize, /prism score, /prism explain, /prism hook on/off/status,
-  /prism patterns, /prism usage, /prism configure, or asks to optimize or analyze
-  a prompt for an AI model.
+  (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
+  /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
+  /prism hook on/off/status, /prism patterns, /prism usage, /prism configure,
+  or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""
 allowed-tools: Read, Bash
@@ -38,6 +38,18 @@ If `.prism/prism.config.json` does not exist, run first-run initialisation:
 ## Command Dispatch
 
 Route the user's command to the correct handler below. Load ONLY the playbook relevant to the command — do not load all three at once unless running `improve-prompt`.
+
+---
+
+## `/prism hello` (also: `/prism` with no arguments)
+
+**Model routing:** None — deterministic script, zero model cost.
+
+```bash
+python scripts/hello.py
+```
+
+Prints a live interactive introduction: the three pillars, a real-time Stage 1 + Stage 2 demo on a built-in sample prompt, and the top commands to try next. Output the script's stdout verbatim. This is the recommended first command for new users.
 
 ---
 

@@ -23,6 +23,43 @@ from conftest import REPO_ROOT, run_script
 
 
 # ---------------------------------------------------------------------------
+# hello.py
+# ---------------------------------------------------------------------------
+
+class TestHelloCli:
+    def test_exits_zero(self):
+        result = run_script("hello.py")
+        assert result.returncode == 0, result.stderr
+
+    def test_contains_pillars(self):
+        result = run_script("hello.py")
+        assert result.returncode == 0
+        output = result.stdout
+        assert "Refraction" in output
+        assert "Sanitization" in output
+        assert "Introspection" in output
+
+    def test_json_flag(self):
+        result = run_script("hello.py", "--json")
+        assert result.returncode == 0, result.stderr
+        data = json.loads(result.stdout)
+        assert data["command"] == "hello"
+        assert data["demo_ran"] is True
+        assert data["stage1"]["safe"] is True
+
+    def test_no_demo_flag(self):
+        result = run_script("hello.py", "--no-demo")
+        assert result.returncode == 0, result.stderr
+        assert "demo skipped" in result.stdout.lower()
+
+    def test_contains_first_commands(self):
+        result = run_script("hello.py")
+        assert result.returncode == 0
+        assert "/prism improve-prompt" in result.stdout
+        assert "/prism hook on" in result.stdout
+
+
+# ---------------------------------------------------------------------------
 # pii_scan.py
 # ---------------------------------------------------------------------------
 

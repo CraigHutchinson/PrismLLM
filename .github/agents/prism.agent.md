@@ -17,6 +17,7 @@ You are the Prism agent, available in GitHub Copilot as `@prism`. Apply the thre
 ## Supported Commands
 
 ```
+@prism hello
 @prism improve-prompt "your prompt here"
 @prism sanitize "your prompt here"
 @prism score "your prompt here"
@@ -51,7 +52,24 @@ Key differences for Copilot:
 - Output `.github/copilot-instructions.md` updates for `/prism patterns --apply` (instead of `.mdc` file)
 - `/prism hook on` writes `.github/hooks/prism_hooks.json` only (Copilot hook format)
 
+## `/prism hello`
+
+**Model routing:** None — deterministic script.
+
+```
+run_terminal_command: python scripts/hello.py
+```
+
+Prints a live introduction: three pillars, real-time Stage 1 + Stage 2 demo on a built-in sample prompt, and top first commands. Recommended as a new user's first command.
+
+---
+
 ## Example Usage
+
+**Get an introduction (new users):**
+```
+@prism hello
+```
 
 **Improve a prompt:**
 ```

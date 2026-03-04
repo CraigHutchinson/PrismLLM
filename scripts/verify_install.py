@@ -93,11 +93,11 @@ def check_scripts_present(repo_root: Path) -> dict:
     required = [
         "pii_scan.py", "kb_query.py", "overhead_calc.py",
         "platform_model.py", "pattern_analysis.py", "usage_log.py",
-        "hook_installer.py", "stage2_gate.py",
+        "hook_installer.py", "stage2_gate.py", "hello.py",
     ]
     missing = [f for f in required if not (repo_root / "scripts" / f).exists()]
     if not missing:
-        return _ok(f"All {len(required)} scripts present")
+        return _ok(f"All {len(required)} core scripts present")
     return _fail(
         f"Missing scripts: {', '.join(missing)}",
         "Re-clone the repository: git clone https://github.com/CraigHutchinson/PrismLLM",
@@ -303,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
     print()
     if all_passed:
         print(f"All {total} checks passed. Prism is ready.")
-        print('Run: /prism improve-prompt "your first prompt here"')
+        print("Run: /prism hello   for an interactive introduction and live demo")
     else:
         failed = total - passed
         print(f"{failed} of {total} checks failed. Fix the issues above and re-run.")
