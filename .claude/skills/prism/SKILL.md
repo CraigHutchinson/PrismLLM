@@ -77,51 +77,111 @@ On Claude Code the format is always xml — this is the preferred Claude upgrade
 
 ## `/prism improve <file_path>` — Agent File Analysis Mode
 
-**Model routing:** Deterministic detection + fast LLM for agt-001 rewrites only.
+**Model routing:** Two-pass analysis — deterministic script (zero cost) then LLM semantic reviewer (fast model). Capable model applies fixes.
 
 **File Detection:** Before Prompt Resolution, check whether the argument looks like a file path (contains `/`, `\`, or ends in `.md`, `.txt`, `.yaml`, `.json`). If the `Read` tool confirms the file exists, use this mode instead of the prompt pipeline.
 
-**Step 1 — Analyse (no model):**
+---
+
+### Pass 1 — Deterministic analysis (no model)
+
 ```bash
 python scripts/agent_review.py --file "<file_path>" --json
 ```
 
-**Step 2 — Present findings:**
+Captures structural issues the script can detect with certainty:
 
-Display a numbered table (rule ID, severity, section, before, after) for every issue found. For agt-001 issues the `after` column will show `[LLM rewrite needed]` — the actual rewrite is generated in Step 2b.
+| Rule | What it catches |
+|------|-----------------|
+| agt-001 | Negative instructions (`never`, `do not`, `don't`) |
+| agt-002 | Duplicate instructions across sections |
+| agt-003 | Unversioned model pin (family name instead of version string) |
+| agt-004 | Inline `<example>` XML inside YAML `description:` field |
+| agt-005 | Missing ambiguity/clarification-handling section |
 
-**Step 2b — LLM rewrites for agt-001 issues (if any):**
+---
 
-For each issue where `rule_id == "agt-001"`:
-1. Read the full file to understand context.
-2. Generate a positive-constraint rewrite of the `before` line that:
-   - Removes negation words ("never", "do not", "don't", "avoid").
-   - Expresses the constraint as what the agent *should* do, not what it must avoid.
-   - Preserves the original intent exactly.
-   - Matches the bullet style and indentation of the original.
-3. Build a JSON rewrite map: `{"<before text>": "<rewritten text>", ...}`
+### Pass 2 — LLM semantic review (fast model)
 
-Example: `"- Never add tests unless requested"` → `"- Add tests only when the project manager explicitly requests them."`
+Read the full file, then act as a senior agent-design reviewer. Check for the following six semantic anti-patterns that regex rules cannot reliably detect:
 
-**Step 3 — Apply all fixes:**
+| Rule | Anti-pattern | Signals to look for |
+|------|-------------|---------------------|
+| llm-001 | Vague scope language | "handle edge cases", "as needed", "use your best judgement", "various situations" |
+| llm-002 | Overpromising | "always", "guaranteed", "never fails", "perfect", "100%", "without exception" |
+| llm-003 | Missing output format spec | No `## Output Format` or equivalent section defining structure, length, or schema |
+| llm-004 | Role scope creep | 4+ unrelated domains covered without a stated primary domain |
+| llm-005 | Missing error/ambiguity handling | No guidance on what to do when tasks fail, inputs are malformed, or intent is unclear |
+| llm-006 | Implicit authority escalation | Destructive actions (delete, send, override) with no confirmation requirement stated |
 
-If there are agt-001 issues, pass the rewrite map:
+For each issue found, produce a structured entry matching the script's Issue shape:
+
+```json
+{
+  "rule_id": "llm-003",
+  "severity": "warn",
+  "section": "body",
+  "before": "(no output format section found)",
+  "after": "## Output Format\n\nRespond with …",
+  "explanation": "Without an output format section the model chooses structure at runtime, leading to inconsistent responses."
+}
+```
+
+Only report issues that are clearly present. Do not invent findings. If a pattern is absent or borderline, skip it.
+
+**Claude Code parallel dispatch:** Spawn Pass 1 and Pass 2 simultaneously using `context: fork` — one sub-task runs the script, the other performs the semantic review. Merge results when both complete.
+
+Merge the LLM issues with the script issues into a single list before presenting.
+
+---
+
+### Present unified findings
+
+Display a numbered table of **all** issues (agt-* and llm-*):
+
+| # | Rule | Sev | Section | Issue summary |
+|---|------|-----|---------|---------------|
+| 1 | agt-001 | warn | responsibilities | "Never add tests unless…" |
+| 2 | llm-003 | warn | body | Missing output format section |
+
+Then show each issue in full (rule ID, severity, before, after, explanation).
+
+---
+
+### Generate rewrites (fast model)
+
+**For each agt-001 issue:** generate a positive-constraint rewrite of the `before` line:
+- Remove negation words ("never", "do not", "don't", "avoid")
+- Express what the agent *should* do, not what it must avoid
+- Preserve original intent exactly; match bullet style and indentation
+
+Build a JSON rewrite map: `{"<before text>": "<rewritten text>", ...}`
+
+**For each llm-* issue:** prepare the suggested `after` text (already generated in Pass 2).
+
+---
+
+### Apply all fixes
+
+**Script-detectable fixes (agt-002..005) + agt-001 rewrites:**
 ```bash
 python scripts/agent_review.py --file "<file_path>" --apply --rewrite-map '<json_rewrite_map>'
 ```
+(Omit `--rewrite-map` if there are no agt-001 issues.)
 
-If there are no agt-001 issues:
-```bash
-python scripts/agent_review.py --file "<file_path>" --apply
-```
+**LLM-detected fixes (llm-*):** Apply directly using the `Edit` or `Write` tool — insert new sections, reword paragraphs, or remove problematic phrases as appropriate.
 
-**Step 4 — Report outcome:**
+---
+
+### Report outcome
+
 ```
-[N] issue(s) found, [N] fix(es) applied.
+[N] issue(s) found ([M] deterministic, [K] semantic).
+[N] fix(es) applied.
 File rewritten: <file_path>
 ```
 
-If no issues are found, output: "No issues detected in `<file_path>`. The file meets all agent design guidelines."
+If no issues are found in either pass, output: "No issues detected in `<file_path>`. The file meets all agent design guidelines."
 
 ---
 
