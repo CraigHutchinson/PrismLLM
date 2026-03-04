@@ -26,11 +26,14 @@
 # 1. Clone into a shared location
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 
-# 2. Symlink the skill into your Cursor skills directory
+# 2. Install Python dependencies
+pip install -r ~/.prism-skill/requirements.txt
+
+# 3. Symlink the skill into your Cursor skills directory
 ln -s ~/.prism-skill/.cursor/skills/prism ~/.cursor/skills/prism  # macOS/Linux
 # Windows: mklink /D "%USERPROFILE%\.cursor\skills\prism" "%USERPROFILE%\.prism-skill\.cursor\skills\prism"
 
-# 3. Restart Cursor — /prism appears in the skill menu
+# 4. Restart Cursor — /prism appears in the skill menu
 ```
 
 ### Claude Code
@@ -40,13 +43,16 @@ ln -s ~/.prism-skill/.cursor/skills/prism ~/.cursor/skills/prism  # macOS/Linux
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 
-# 2. Copy the skill into your project's .claude/ directory
+# 2. Install Python dependencies
+pip install -r ~/.prism-skill/requirements.txt
+
+# 3. Copy the skill into your project's .claude/ directory
 cp -r ~/.prism-skill/.claude/skills/prism .claude/skills/prism
 cp -r ~/.prism-skill/.claude/skills/prism-sanitize .claude/skills/
 cp -r ~/.prism-skill/.claude/skills/prism-score .claude/skills/
 cp -r ~/.prism-skill/.claude/skills/prism-refract .claude/skills/
 
-# 3. /prism is now available as a slash command in Claude Code
+# 4. /prism is now available as a slash command in Claude Code
 ```
 
 **Windows (PowerShell):**
@@ -54,7 +60,10 @@ cp -r ~/.prism-skill/.claude/skills/prism-refract .claude/skills/
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
 
-# 2. Copy the skill files into your project's .claude\ directory
+# 2. Install Python dependencies
+pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
+
+# 3. Copy the skill files into your project's .claude\ directory
 $src = "$env:USERPROFILE\.prism-skill\.claude\skills"
 New-Item -ItemType Directory -Force ".claude\skills" | Out-Null
 Copy-Item -Recurse "$src\prism"           ".claude\skills\prism"
@@ -62,7 +71,7 @@ Copy-Item -Recurse "$src\prism-sanitize"  ".claude\skills\prism-sanitize"
 Copy-Item -Recurse "$src\prism-score"     ".claude\skills\prism-score"
 Copy-Item -Recurse "$src\prism-refract"   ".claude\skills\prism-refract"
 
-# 3. /prism is now available as a slash command in Claude Code
+# 4. /prism is now available as a slash command in Claude Code
 ```
 
 ### GitHub Copilot
@@ -72,11 +81,14 @@ Copy-Item -Recurse "$src\prism-refract"   ".claude\skills\prism-refract"
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 
-# 2. Copy platform files into your repo
+# 2. Install Python dependencies
+pip install -r ~/.prism-skill/requirements.txt
+
+# 3. Copy platform files into your repo
 cp ~/.prism-skill/.github/agents/prism.agent.md .github/agents/
 cp ~/.prism-skill/.github/copilot-instructions.md .github/
 
-# 3. The @prism agent appears in Copilot Chat's agent selector
+# 4. The @prism agent appears in Copilot Chat's agent selector
 ```
 
 **Windows (PowerShell):**
@@ -84,14 +96,53 @@ cp ~/.prism-skill/.github/copilot-instructions.md .github/
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
 
-# 2. Copy platform files into your repo
+# 2. Install Python dependencies
+pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
+
+# 3. Copy platform files into your repo
 $src = "$env:USERPROFILE\.prism-skill"
 New-Item -ItemType Directory -Force ".github\agents" | Out-Null
 Copy-Item "$src\.github\agents\prism.agent.md" ".github\agents\prism.agent.md"
 Copy-Item "$src\.github\copilot-instructions.md" ".github\copilot-instructions.md"
 
-# 3. The @prism agent appears in Copilot Chat's agent selector
+# 4. The @prism agent appears in Copilot Chat's agent selector
 ```
+
+---
+
+## Verify Your Installation
+
+After installing on any platform, run the install verifier to confirm everything is in order:
+
+```bash
+python ~/.prism-skill/scripts/verify_install.py
+```
+
+**Windows (PowerShell):**
+```powershell
+python "$env:USERPROFILE\.prism-skill\scripts\verify_install.py"
+```
+
+A healthy install prints:
+```
+Prism Install Verifier
+======================
+✓ Python 3.11 (>= 3.9 required)
+✓ jsonschema installed
+✓ All 8 scripts present
+✓ Hook script present
+✓ Data files present
+✓ JSON schemas valid (4 schemas, 35 rules)
+✓ pii_scan functional
+✓ stage2_gate functional
+✓ hook_installer status ok
+✓ .prism/ directory writeable
+
+All 10 checks passed. Prism is ready.
+Run: /prism improve-prompt "your first prompt here"
+```
+
+If any check fails, a one-line fix hint is printed alongside the failure.
 
 ---
 
@@ -208,9 +259,11 @@ rm -rf .claude/skills/prism .claude/skills/prism-sanitize .claude/skills/prism-s
 
 Copilot:
 ```bash
+# Turn off hooks first (removes .github/hooks/prism_hooks.json if active)
+python ~/.prism-skill/scripts/hook_installer.py --action off
+# Then remove the agent and instructions files
 rm .github/agents/prism.agent.md
-rm .github/hooks/prism_hooks.json
-# Edit .github/copilot-instructions.md to remove the Prism section
+rm .github/copilot-instructions.md
 ```
 
 Runtime data (local only, never committed):
@@ -251,6 +304,9 @@ PrismLLM/
 │   ├── platform_model.py      ← Platform detection + model router
 │   ├── pattern_analysis.py    ← Prompt log analyser
 │   ├── usage_log.py           ← Session overhead log management
+│   ├── hook_installer.py      ← /prism hook on|off|status (idempotent)
+│   ├── stage2_gate.py         ← Stage 2 deterministic quality gate (no model)
+│   ├── verify_install.py      ← Post-install health checker (10 checks)
 │   ├── verbosity_patterns.json ← Seeded verbose → terse phrase dictionary
 │   ├── prism_config_default.json ← Default configuration template
 │   └── schemas/               ← JSON output schemas for structured model calls

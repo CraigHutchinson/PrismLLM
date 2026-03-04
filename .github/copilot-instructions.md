@@ -28,7 +28,7 @@ Invoke the Prism agent directly in Copilot Chat:
 - Before submitting a complex multi-step request
 - When a prompt contains potentially sensitive context (credentials, personal data)
 - When a previous prompt produced a vague or off-target response
-- Periodically, to analyse your personal writing habits with `/prism patterns`
+- Periodically, to analyse your personal writing habits with `@prism patterns`
 
 ## More Information
 

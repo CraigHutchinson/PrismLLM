@@ -666,7 +666,7 @@ argument-hint: "[command] \"[prompt]\""
 allowed-tools: Read, Bash
 metadata:
   hook-config: .claude/settings.json
-  hook-script: .claude/hooks/prism_preparser.py
+  hook-script: hooks/prism_preparser.py
   copilot-agent: .github/agents/prism.agent.md
 ---
 ```
