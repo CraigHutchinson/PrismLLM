@@ -1,0 +1,8 @@
+[run]
+branch = false
+
+[report]
+# Utility scripts covered by smoke tests, not unit tests
+omit =
+    scripts/verify_install.py
+    scripts/ci_check.py

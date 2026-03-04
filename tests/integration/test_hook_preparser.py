@@ -213,11 +213,60 @@ def test_run_pattern_analysis_background_script_present(tmp_path):
             mock_popen.assert_called_once()
 
 
+def test_run_pattern_analysis_background_with_model(tmp_path):
+    """Covers the --model branch when resolve_analysis_model returns a name."""
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "pattern_analysis.py").write_text("pass")
+    fake_pm = MagicMock()
+    fake_pm.resolve_analysis_model.return_value = "claude-haiku-4-5"
+    with patch.multiple(prism_preparser, PRISM_ROOT=tmp_path):
+        with patch.dict("sys.modules", {"platform_model": fake_pm}):
+            with patch("subprocess.Popen") as mock_popen:
+                prism_preparser._run_pattern_analysis_background()
+                call_args = mock_popen.call_args[0][0]
+                assert "--model" in call_args
+                assert "claude-haiku-4-5" in call_args
+
+
+def test_run_pattern_analysis_background_platform_model_import_error(tmp_path):
+    """Covers the except ImportError branch in _run_pattern_analysis_background."""
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "pattern_analysis.py").write_text("pass")
+    with patch.multiple(prism_preparser, PRISM_ROOT=tmp_path):
+        with patch.dict("sys.modules", {"platform_model": None}):
+            with patch("subprocess.Popen") as mock_popen:
+                prism_preparser._run_pattern_analysis_background()
+                # Should still launch — just without --model
+                mock_popen.assert_called_once()
+                call_args = mock_popen.call_args[0][0]
+                assert "--model" not in call_args
+
+
 # ── snapshot_overhead exception handling ──────────────────────────────────────
 
 def test_snapshot_overhead_swallows_exception():
     with patch("builtins.__import__", side_effect=ImportError("not found")):
         prism_preparser.snapshot_overhead()
+
+
+def test_snapshot_overhead_nested_oserror():
+    """Covers the nested OSError branch when mkdir fails while writing the error file."""
+    mock_dir = MagicMock()
+    mock_dir.mkdir.side_effect = OSError("disk full")
+    with patch.multiple(prism_preparser, PRISM_DIR=mock_dir):
+        with patch("builtins.__import__", side_effect=ImportError("test")):
+            # Should not raise — the nested OSError is silently swallowed
+            prism_preparser.snapshot_overhead()
+
+
+# ── _count_log_entries with no log file ───────────────────────────────────────
+
+def test_count_log_entries_no_log_file(tmp_path):
+    """Covers the early-return branch when PROMPT_LOG does not exist."""
+    with patch.multiple(prism_preparser, PROMPT_LOG=tmp_path / "nonexistent.jsonl"):
+        assert prism_preparser._count_log_entries() == 0
 
 
 # ── load_config branches ──────────────────────────────────────────────────────

@@ -291,5 +291,5 @@ def main() -> None:
             print(f"\nRedacted prompt:\n{result.redacted_prompt}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
