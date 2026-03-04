@@ -1,10 +1,16 @@
 """
 ci_check.py — Run all CI checks locally before pushing.
 
-Replicates the three GitHub Actions jobs in sequence:
-  1. Unit + integration tests with coverage (mirrors 'test' job)
-  2. Smoke tests (mirrors 'smoke' job)
-  3. Install verifier (mirrors 'install-smoke' job)
+Replicates the GitHub Actions jobs from .github/workflows/test.yml:
+  1. Unit + integration tests with coverage (mirrors 'test' job, Linux)
+  2. Security-critical coverage @ 100% (pii_scan, prism_preparser)
+  3. JSON schema validation
+  4. verbosity_patterns.json structure check
+  5. Smoke tests (mirrors 'smoke' job)
+  6. Install verifier (mirrors 'install-smoke' job)
+
+Cross-platform smoke (macOS + Windows) and release-only full coverage
+(.github/workflows/release.yml) are not replicated here — they run in CI.
 
 Usage:
     python scripts/ci_check.py [--fast]

@@ -1,0 +1,104 @@
+name: Prism Release — Cross-Platform Coverage
+
+# Full unit + integration test suite run on macOS and Windows.
+# Only triggered on a published GitHub Release — keeps per-push CI cheap
+# while guaranteeing OS-level correctness before any tagged version ships.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────
+  # Full coverage on macOS + Windows (Python version matrix)
+  # Mirrors the Linux "test" job in test.yml exactly so failures are
+  # directly comparable.
+  # ──────────────────────────────────────────────────────────────────
+  test-cross-platform:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        python-version: ["3.9", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest tests/ --ignore=tests/smoke --cov=scripts --cov=hooks --cov-report=xml --cov-fail-under=80
+
+      - name: Check security-critical coverage (pii_scan, prism_preparser)
+        # shell: bash so PYTHONPATH=a:b syntax works on Windows via Git Bash
+        shell: bash
+        run: |
+          PYTHONPATH=scripts:hooks pytest tests/unit/test_pii_scan.py tests/integration/test_hook_preparser.py \
+            --cov=pii_scan --cov=prism_preparser \
+            --cov-fail-under=100
+
+      - name: Validate JSON schemas
+        run: |
+          python -c "
+          import json, pathlib
+          for f in pathlib.Path('scripts/schemas').glob('*.json'):
+              json.loads(f.read_text())
+              print(f'OK: {f.name}')
+          for f in pathlib.Path('knowledge-base').glob('*.json'):
+              json.loads(f.read_text())
+              print(f'OK: {f.name}')
+          "
+
+      - name: Validate verbosity_patterns.json structure
+        run: |
+          python -c "
+          import json
+          data = json.loads(open('scripts/verbosity_patterns.json').read())
+          assert 'patterns' in data, 'Missing patterns key'
+          assert len(data['patterns']) >= 20, 'Too few patterns'
+          required = {'phrase', 'category', 'terse_alt', 'token_saving'}
+          for p in data['patterns']:
+              missing = required - set(p.keys())
+              assert not missing, f'Pattern missing fields: {missing}'
+          print(f'OK: {len(data[\"patterns\"])} patterns validated')
+          "
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: coverage.xml
+
+  # ──────────────────────────────────────────────────────────────────
+  # Smoke tests on macOS + Windows at release time (belt-and-braces)
+  # ──────────────────────────────────────────────────────────────────
+  smoke-cross-platform-release:
+    runs-on: ${{ matrix.os }}
+    needs: test-cross-platform
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run smoke tests
+        run: pytest tests/smoke/ -v
+
+      - name: Run install verifier
+        run: python scripts/verify_install.py

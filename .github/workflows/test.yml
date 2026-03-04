@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ──────────────────────────────────────────────────────────────────
-  # Job 1: Unit + integration tests with coverage (Python matrix)
+  # Job 1: Unit + integration tests with coverage (Linux, Python matrix)
   # ──────────────────────────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
           path: coverage.xml
 
   # ──────────────────────────────────────────────────────────────────
-  # Job 2: Smoke tests — exercise real CLI surface end-to-end
+  # Job 2: Smoke tests — exercise real CLI surface end-to-end (Linux)
   # ──────────────────────────────────────────────────────────────────
   smoke:
     runs-on: ubuntu-latest
@@ -122,3 +122,45 @@ jobs:
           python scripts/kb_query.py --pillar refraction --count
           # overhead_calc — compute token estimates
           python scripts/overhead_calc.py --print
+          # hello — interactive intro
+          python scripts/hello.py --no-demo
+
+  # ──────────────────────────────────────────────────────────────────
+  # Job 4: Cross-platform smoke (macOS + Windows) — runs on every push
+  #   after Linux tests pass. Single Python version to keep costs low.
+  #   Catches OS-specific path, encoding, and subprocess issues early.
+  # ──────────────────────────────────────────────────────────────────
+  smoke-cross-platform:
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run smoke tests
+        # conftest.py sets PYTHONPATH per-subprocess using os.pathsep — no env needed here
+        run: pytest tests/smoke/ -v
+
+      - name: Run install verifier
+        run: python scripts/verify_install.py
+
+      - name: Smoke-test core CLIs (no test framework)
+        # shell: bash ensures echo-pipe syntax works on Windows (via Git Bash)
+        shell: bash
+        run: |
+          python scripts/pii_scan.py "hello world" --json
+          echo "Fix the auth token refresh bug" | python scripts/stage2_gate.py
+          python scripts/hook_installer.py --action status
+          python scripts/overhead_calc.py --print
+          python scripts/hello.py --no-demo
