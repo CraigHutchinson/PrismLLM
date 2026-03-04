@@ -153,10 +153,31 @@ def handle_session_start(platform: str) -> dict:
     return output
 
 
+def _extract_prompt(raw: str) -> str:
+    """
+    Cursor/Claude Code passes hook payloads as JSON objects, e.g.:
+      {"prompt": "say hello", "session_id": "user@host", ...}
+    Scanning the entire JSON string causes false-positive EMAIL hits on
+    metadata fields (session IDs, paths, git user.email, etc.).
+    Extract only the "prompt" field when the input is valid JSON with that key.
+    Fall back to the raw string for plain-text input (backward compatible).
+    """
+    stripped = raw.strip()
+    if stripped.startswith("{"):
+        try:
+            payload = json.loads(stripped)
+            if isinstance(payload, dict) and "prompt" in payload:
+                return str(payload["prompt"])
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return raw
+
+
 def handle_user_prompt_submit(text: str, platform: str) -> dict:
     config = load_config()
-    result = pii_scan.scan(text)
-    log_prompt(text, platform, result)
+    prompt = _extract_prompt(text)
+    result = pii_scan.scan(prompt)
+    log_prompt(prompt, platform, result)
 
     if not result.safe:
         block_message = _build_block_message(result)
@@ -166,7 +187,8 @@ def handle_user_prompt_submit(text: str, platform: str) -> dict:
 
 
 def handle_pre_tool_use(tool_input: str, platform: str) -> dict:
-    result = pii_scan.scan(tool_input)
+    prompt = _extract_prompt(tool_input)
+    result = pii_scan.scan(prompt)
     if not result.safe:
         reason = "; ".join(result.issues[:2]) if result.issues else "PII or injection detected"
         if platform == "copilot":
