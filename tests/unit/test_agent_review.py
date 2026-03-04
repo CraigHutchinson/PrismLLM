@@ -219,6 +219,102 @@ def test_agt004_after_suggests_body_section(tmp_path):
     assert "Examples" in agt004[0].after or "examples" in agt004[0].after.lower()
 
 
+def test_agt004_meta_contains_examples_body(tmp_path):
+    """agt-004 issue must carry extracted example content in meta['examples_body']."""
+    p = _write_file(tmp_path, _FM_EXAMPLE_XML, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"][0]
+    assert "examples_body" in agt004.meta
+    body = agt004.meta["examples_body"]
+    assert "## Examples" in body
+    # Verify dialogue content is preserved, not discarded
+    assert "A manager assigns a task" in body or "manager" in body.lower()
+
+
+def test_agt004_meta_examples_body_has_role_labels(tmp_path):
+    """Extracted examples must format context and assistant turns as markdown."""
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent. "
+        "<example>Context: A PM assigns work. assistant: I will do it.</example>\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"][0]
+    body = agt004.meta["examples_body"]
+    assert "**Context:**" in body
+    assert "**assistant:**" in body or "assistant" in body.lower()
+
+
+def test_agt004_meta_empty_when_no_example_content(tmp_path):
+    """If <example> blocks have no parseable content, meta may be empty or minimal."""
+    fm = (
+        "---\nname: my-agent\n"
+        "description: <example></example>\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"]
+    # Issue is still raised; meta may or may not have examples_body
+    assert len(agt004) == 1
+
+
+def test_agt004_apply_appends_examples_section_to_body(tmp_path):
+    """--apply must write a ## Examples section preserving all example content."""
+    p = _write_file(tmp_path, _FM_EXAMPLE_XML, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agent_review.apply_fixes(p, result)
+    content = p.read_text(encoding="utf-8")
+    assert "## Examples" in content
+    # Original <example> XML must be gone from the file
+    assert "<example>" not in content
+    # Example dialogue content must be in the body
+    assert "A manager assigns a task" in content
+
+
+def test_agt004_apply_does_not_duplicate_examples_on_rerun(tmp_path):
+    """Re-running apply on an already-fixed file must not add a second Examples section."""
+    p = _write_file(tmp_path, _FM_EXAMPLE_XML, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agent_review.apply_fixes(p, result)
+    # Run again on the already-fixed file
+    result2 = agent_review.review(p)
+    agt004_issues = [i for i in result2.issues if i.rule_id == "agt-004"]
+    assert len(agt004_issues) == 0  # agt-004 should not fire on already-fixed file
+    content = p.read_text(encoding="utf-8")
+    assert content.count("## Examples") == 1
+
+
+def test_agt004_multiple_examples_numbered_with_separator(tmp_path):
+    """Two <example> blocks produce numbered headings and a --- separator."""
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this when needed. "
+        "<example>Context: First task. assistant: Done first.</example> "
+        "<example>Context: Second task. assistant: Done second.</example>\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"][0]
+    body = agt004.meta["examples_body"]
+    assert "**Example 1**" in body
+    assert "**Example 2**" in body
+    assert "---" in body  # separator between examples
+
+
+def test_agt004_to_dict_includes_meta(tmp_path):
+    """Issue.to_dict() must include 'meta' key when meta is non-empty."""
+    p = _write_file(tmp_path, _FM_EXAMPLE_XML, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"][0]
+    d = agt004.to_dict()
+    assert "meta" in d
+    assert "examples_body" in d["meta"]
+
+
 def test_agt004_strips_trailing_examples_label(tmp_path):
     """Orphaned 'Examples:' label left after stripping <example> XML must be removed."""
     fm = (

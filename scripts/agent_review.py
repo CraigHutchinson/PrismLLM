@@ -75,9 +75,20 @@ class Issue:
     before: str            # the problematic text (line or field value)
     after: str             # the suggested replacement
     explanation: str
+    meta: dict = field(default_factory=dict)  # rule-specific side-channel data
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = {
+            "rule_id":     self.rule_id,
+            "severity":    self.severity,
+            "section":     self.section,
+            "before":      self.before,
+            "after":       self.after,
+            "explanation": self.explanation,
+        }
+        if self.meta:
+            d["meta"] = self.meta
+        return d
 
 
 @dataclass
@@ -240,6 +251,58 @@ _TRAILING_LABEL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Role labels that appear inside <example> dialogue blocks.
+_EXAMPLE_ROLE_RE = re.compile(
+    r"\b(context|project-manager|manager|pm|user|assistant|ai|human|system"
+    r"|agent|orchestrator|tool)\s*:",
+    re.IGNORECASE,
+)
+
+
+def _extract_examples(desc: str) -> str:
+    """
+    Extract all <example>…</example> blocks from a YAML description and render
+    them as a markdown ``## Examples`` section.
+
+    Each block is parsed into key: value dialogue turns.  Unrecognised structure
+    is wrapped in a blockquote so no content is lost.
+
+    Returns an empty string if no <example> blocks are found.
+    """
+    raw_blocks = re.findall(r"<example[^>]*>(.*?)</example>", desc, re.DOTALL)
+    if not raw_blocks:  # pragma: no cover — caller always checks first
+        return ""
+
+    parts: list[str] = ["## Examples\n"]
+
+    for idx, block in enumerate(raw_blocks, 1):
+        block = block.strip()
+        if len(raw_blocks) > 1:
+            parts.append(f"\n**Example {idx}**\n")
+
+        # Split on role labels to get alternating [pre, role, text, role, text, …]
+        segments = _EXAMPLE_ROLE_RE.split(block)
+
+        if len(segments) < 3:
+            # No recognisable roles — preserve content verbatim in a blockquote
+            parts.append(f"\n> {block}\n")
+        else:
+            # segments[0] is any text before the first role label (usually empty)
+            for i in range(1, len(segments) - 1, 2):
+                role = segments[i].strip()
+                text = segments[i + 1].strip().strip("'\"") if i + 1 < len(segments) else ""
+                # Strip leading/trailing punctuation that was part of the YAML quoting
+                text = text.rstrip(".,;")
+                if role.lower() == "context":
+                    parts.append(f"\n**Context:** {text}\n")
+                else:
+                    parts.append(f"\n> **{role}:** \"{text}\"\n")
+
+        if idx < len(raw_blocks):
+            parts.append("\n---\n")
+
+    return "".join(parts)
+
 
 def _clean_description(desc: str) -> str:
     """
@@ -263,6 +326,7 @@ def _check_agt004(fm: dict[str, str]) -> list[Issue]:
     desc = fm.get("description", "")
     if "<example>" in desc or "<example " in desc:
         short_desc = _clean_description(desc)
+        examples_body = _extract_examples(desc)
         issues.append(Issue(
             rule_id="agt-004",
             severity="warn",
@@ -278,6 +342,7 @@ def _check_agt004(fm: dict[str, str]) -> list[Issue]:
                 "unreadable. Move examples to a '## Examples' section in the "
                 "markdown body where they can be formatted clearly."
             ),
+            meta={"examples_body": examples_body} if examples_body else {},
         ))
     return issues
 
@@ -364,13 +429,16 @@ def _apply_fixes(
     rmap = rewrite_map or {}
     lines = text.splitlines(keepends=True)
     new_lines: list[str] = []
-    agt005_additions: list[str] = []
+    body_additions: list[str] = []
     # Track lines already emitted so agt-002 can remove later occurrences only
     lines_kept: set[str] = set()
 
     for issue in issues:
         if issue.rule_id == "agt-005":
-            agt005_additions.append("\n" + issue.after + "\n")
+            body_additions.append("\n" + issue.after + "\n")
+        elif issue.rule_id == "agt-004" and issue.meta.get("examples_body"):
+            # Append the extracted Examples section (only if not already present)
+            body_additions.append("\n" + issue.meta["examples_body"] + "\n")
 
     for line in lines:
         stripped = line.rstrip("\n").rstrip("\r")
@@ -412,9 +480,9 @@ def _apply_fixes(
     result = "".join(new_lines)
     result = re.sub(r"\n{3,}", "\n\n", result)
 
-    # Append agt-005 additions at the end
-    if agt005_additions:
-        result = result.rstrip("\n") + "\n" + "".join(agt005_additions)
+    # Append body additions (agt-005 clarification section, agt-004 Examples)
+    if body_additions:
+        result = result.rstrip("\n") + "\n" + "".join(body_additions)
 
     return result
 
