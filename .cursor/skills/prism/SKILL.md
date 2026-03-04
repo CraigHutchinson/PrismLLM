@@ -252,6 +252,21 @@ python scripts/hook_installer.py --action status
 
 Reports whether Prism hooks are active in `.claude/settings.json` and `.github/hooks/prism_hooks.json`. Output the installer's stdout verbatim.
 
+## `/prism hook debug`
+
+**Model routing:** None — reads a log file, zero model cost.
+
+```bash
+python scripts/hook_debug.py
+```
+
+Prints the last 20 entries from `.prism/hook-debug.log` as a formatted table showing: timestamp, event, raw stdin length, extracted prompt, whether the prompt was blocked, and any PII/injection findings. Use this to diagnose false positives — the `raw_repr` field shows exactly what Cursor sent to the hook.
+
+To clear the log:
+```bash
+python scripts/hook_debug.py --clear
+```
+
 ---
 
 ## `/prism patterns`

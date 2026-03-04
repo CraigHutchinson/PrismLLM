@@ -36,6 +36,44 @@ PROMPT_LOG   = PRISM_DIR / "prompt-log.jsonl"
 ANALYSIS_FLAG = PRISM_DIR / ".analysis-needed"
 CONFIG_PATH  = PRISM_DIR / "prism.config.json"
 CONFIG_DEFAULT = PRISM_ROOT / "scripts" / "prism_config_default.json"
+DEBUG_LOG    = PRISM_DIR / "hook-debug.log"
+
+
+# ── Debug logging ──────────────────────────────────────────────────────────────
+
+def _debug_log(event: str, raw_stdin: str, extracted: str,
+               scan_result=None, blocked: bool = False) -> None:
+    """
+    Append one entry to .prism/hook-debug.log.
+    Always-on — exists to diagnose what Cursor actually sends to the hook.
+    Rotate at 200 entries to prevent unbounded growth.
+    """
+    import datetime
+    PRISM_DIR.mkdir(parents=True, exist_ok=True)
+
+    entry = {
+        "ts":        datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "event":     event,
+        "raw_len":   len(raw_stdin),
+        "raw_repr":  repr(raw_stdin[:500]),          # first 500 chars, safely escaped
+        "extracted": repr(extracted[:200]),
+        "blocked":   blocked,
+        "pii_found": getattr(scan_result, "pii_found", []),
+        "injection": getattr(scan_result, "injection_risk", False),
+        "issues":    getattr(scan_result, "issues", []),
+    }
+
+    try:
+        # Rotate: keep last 200 lines
+        lines: list[str] = []
+        if DEBUG_LOG.exists():
+            lines = [l for l in DEBUG_LOG.read_text(encoding="utf-8").splitlines() if l.strip()]
+        lines.append(json.dumps(entry))
+        if len(lines) > 200:
+            lines = lines[-200:]
+        DEBUG_LOG.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError:
+        pass  # never let debug logging crash the hook
 
 
 # ── Config ─────────────────────────────────────────────────────────────────────
@@ -179,7 +217,10 @@ def handle_user_prompt_submit(text: str, platform: str) -> dict:
     result = pii_scan.scan(prompt)
     log_prompt(prompt, platform, result)
 
-    if not result.safe:
+    blocked = not result.safe
+    _debug_log("userPromptSubmit", text, prompt, result, blocked)
+
+    if blocked:
         block_message = _build_block_message(result)
         return _block_response(platform, block_message)
 
@@ -189,6 +230,7 @@ def handle_user_prompt_submit(text: str, platform: str) -> dict:
 def handle_pre_tool_use(tool_input: str, platform: str) -> dict:
     prompt = _extract_prompt(tool_input)
     result = pii_scan.scan(prompt)
+    _debug_log("preToolUse", tool_input, prompt, result, not result.safe)
     if not result.safe:
         reason = "; ".join(result.issues[:2]) if result.issues else "sensitive data or injection detected"
         if platform == "copilot":
