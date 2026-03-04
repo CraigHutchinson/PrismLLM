@@ -173,11 +173,31 @@ python scripts/agent_review.py --file "<file_path>" --apply --rewrite-map '<json
 
 ---
 
+### Post-apply validation
+
+After all fixes are written, re-run the deterministic analysis on the modified file:
+
+```bash
+python scripts/agent_review.py --file "<file_path>" --json
+```
+
+Check the output for **induced artifacts** — new issues created by the apply step itself. Common examples:
+
+| Artifact | Caused by | Rule that catches it |
+|----------|-----------|----------------------|
+| Description ending in "Examples:" | agt-004 stripped `<example>` but left the intro label | agt-006 |
+| Blank frontmatter field | agt-003/agt-004 partial replacement | agt-006 |
+| Duplicate line introduced by agt-005 section addition | File already had a near-match section | agt-002 |
+
+If new issues appear, fix them before reporting. If they cannot be auto-fixed by the script, apply them directly with the `Edit` or `Write` tool.
+
+---
+
 ### Report outcome
 
 ```
 [N] issue(s) found ([M] deterministic, [K] semantic).
-[N] fix(es) applied.
+[N] fix(es) applied. [P] post-apply issue(s) resolved.
 File rewritten: <file_path>
 ```
 

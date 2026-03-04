@@ -219,6 +219,96 @@ def test_agt004_after_suggests_body_section(tmp_path):
     assert "Examples" in agt004[0].after or "examples" in agt004[0].after.lower()
 
 
+def test_agt004_strips_trailing_examples_label(tmp_path):
+    """Orphaned 'Examples:' label left after stripping <example> XML must be removed."""
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent when needed. Examples: <example>foo</example>\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"]
+    assert len(agt004) == 1
+    # The 'after' description must not end with "Examples:" or any orphaned label
+    after_desc = agt004[0].after.split("\n")[0]  # first line = "description: ..."
+    assert not after_desc.rstrip().endswith(":")
+    assert "Examples:" not in after_desc
+
+
+def test_agt004_clean_description_strips_label_variants(tmp_path):
+    """_clean_description handles common label variants: e.g., See:, Note:, Usage:"""
+    for label in ["Examples:", "Example:", "e.g.:", "See:", "Usage:"]:
+        fm = (
+            "---\nname: my-agent\n"
+            f"description: Use this when needed. {label} <example>foo</example>\n"
+            "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+        )
+        p = _write_file(tmp_path, fm, _BODY_CLEAN)
+        result = agent_review.review(p)
+        agt004 = [i for i in result.issues if i.rule_id == "agt-004"]
+        assert len(agt004) == 1, f"Expected agt-004 for label {label!r}"
+        after_desc = agt004[0].after.split("\n")[0]
+        assert not after_desc.rstrip().endswith(":"), (
+            f"Orphaned label not stripped for {label!r}: {after_desc!r}"
+        )
+
+
+# ── agt-006: dangling/truncated description ───────────────────────────────────
+
+def test_agt006_detects_description_ending_with_colon(tmp_path):
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent when needed. Examples:\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    assert any(i.rule_id == "agt-006" for i in result.issues)
+
+
+def test_agt006_detects_orphaned_label_word(tmp_path):
+    """Description ending in a bare label word like 'Examples' (no colon) is also flagged."""
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent when needed. See:\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    assert any(i.rule_id == "agt-006" for i in result.issues)
+
+
+def test_agt006_no_issue_on_clean_description(tmp_path):
+    p = _write_file(tmp_path, _FM_VERSIONED, _BODY_CLEAN)
+    result = agent_review.review(p)
+    assert not any(i.rule_id == "agt-006" for i in result.issues)
+
+
+def test_agt006_no_issue_on_sentence_ending_with_period(tmp_path):
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent to implement features as directed.\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    assert not any(i.rule_id == "agt-006" for i in result.issues)
+
+
+def test_agt006_explanation_mentions_truncation(tmp_path):
+    fm = (
+        "---\nname: my-agent\n"
+        "description: Use this agent when needed. Examples:\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt006 = [i for i in result.issues if i.rule_id == "agt-006"]
+    assert len(agt006) == 1
+    assert "truncat" in agt006[0].explanation.lower() or "colon" in agt006[0].explanation.lower()
+
+
 # ── agt-005: missing clarification section ────────────────────────────────────
 
 def test_agt005_fires_when_no_clarification_section(tmp_path):

@@ -672,6 +672,22 @@
     "tags": ["agent", "yaml", "frontmatter", "readability"]
   },
   {
+    "id": "agt-006",
+    "pillar": "refraction",
+    "category": "agent-design",
+    "title": "Fix truncated or dangling frontmatter description",
+    "rule": "A frontmatter `description:` field that ends with a bare colon, an orphaned label word ('Examples:', 'See:', 'e.g.:'), or an incomplete sentence is usually a truncation artifact left by stripping inline example blocks. Rewrite as a complete, self-contained sentence that ends with punctuation and stands on its own without any continuation context.",
+    "model_applies": ["all"],
+    "model_deprecated": null,
+    "source_url": null,
+    "source_type": "derived",
+    "example_bad": "description: Use this agent when you need to implement features. Examples:",
+    "example_good": "description: Use this agent when you need to implement specific functionality or features as directed by a project manager.",
+    "confidence": "high",
+    "apply_cost": "fast",
+    "tags": ["agent", "frontmatter", "description", "truncation", "artifact"]
+  },
+  {
     "id": "llm-001",
     "pillar": "refraction",
     "category": "agent-design",

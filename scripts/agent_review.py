@@ -234,14 +234,35 @@ def _check_agt003(fm: dict[str, str]) -> list[Issue]:
     return issues
 
 
+# Words that commonly appear as orphaned labels when <example> blocks are stripped.
+_TRAILING_LABEL_RE = re.compile(
+    r"[\s,;.]*\b(examples?|e\.g\.?|for example|see|usage|note|such as)\s*:?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _clean_description(desc: str) -> str:
+    """
+    Strip <example> blocks and any orphaned introductory label that preceded them.
+
+    For example:
+        "Use this agent when needed. Examples: <example>…</example>"
+        → "Use this agent when needed."
+    """
+    short = re.sub(r"\s*<example[\s>].*", "", desc, flags=re.DOTALL).strip()
+    # Remove trailing orphaned labels that were introducing the removed examples
+    short = _TRAILING_LABEL_RE.sub("", short).strip()
+    if not short:
+        short = "Use this agent when you need to implement specific functionality."
+    return short
+
+
 def _check_agt004(fm: dict[str, str]) -> list[Issue]:
     """agt-004: Inline <example> XML in YAML frontmatter description."""
     issues: list[Issue] = []
     desc = fm.get("description", "")
     if "<example>" in desc or "<example " in desc:
-        short_desc = re.sub(r"\s*<example>.*", "", desc, flags=re.DOTALL).strip()
-        if not short_desc:
-            short_desc = "Use this agent when you need to implement specific functionality."
+        short_desc = _clean_description(desc)
         issues.append(Issue(
             rule_id="agt-004",
             severity="warn",
@@ -256,6 +277,41 @@ def _check_agt004(fm: dict[str, str]) -> list[Issue]:
                 "may misinterpret angle brackets, and the description becomes "
                 "unreadable. Move examples to a '## Examples' section in the "
                 "markdown body where they can be formatted clearly."
+            ),
+        ))
+    return issues
+
+
+# Common patterns indicating a truncated or dangling description value.
+_DANGLING_DESC_RE = re.compile(
+    r"([\s,;.]*\b(examples?|e\.g\.?|for example|see|usage|note|such as)\s*:?\s*"
+    r"|[^.!?]\s*[:]\s*)$",
+    re.IGNORECASE,
+)
+
+
+def _check_agt006(fm: dict[str, str]) -> list[Issue]:
+    """agt-006: Truncated or dangling frontmatter description."""
+    issues: list[Issue] = []
+    desc = fm.get("description", "").strip()
+    if not desc:
+        return issues
+    if _DANGLING_DESC_RE.search(desc):
+        issues.append(Issue(
+            rule_id="agt-006",
+            severity="warn",
+            section="frontmatter",
+            before=f"description: …{desc[-60:]}",
+            after=(
+                "description: <complete sentence ending in punctuation, "
+                "no trailing colon or orphaned label>"
+            ),
+            explanation=(
+                "The description field ends with a colon or an orphaned label "
+                "word (e.g. 'Examples:', 'See:'), which usually means an "
+                "<example> block or continuation text was removed and the "
+                "introductory phrase was left behind. Rewrite as a complete "
+                "sentence that stands on its own."
             ),
         ))
     return issues
@@ -380,6 +436,7 @@ def review(file_path: str | Path) -> ReviewResult:
     issues.extend(_check_agt003(fm))
     issues.extend(_check_agt004(fm))
     issues.extend(_check_agt005(body))
+    issues.extend(_check_agt006(fm))
 
     return ReviewResult(file=str(path), file_type=file_type, issues=issues)
 
