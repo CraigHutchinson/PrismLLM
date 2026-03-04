@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 import overhead_calc
@@ -74,3 +75,43 @@ def test_build_command_table_returns_integers(tmp_path):
     components = overhead_calc.scan_components(tmp_path)
     table = overhead_calc.build_command_table(components)
     assert all(isinstance(v, int) for v in table.values())
+
+
+def test_load_component_sizes_missing(tmp_path):
+    result = overhead_calc.load_component_sizes(tmp_path / "nonexistent.json")
+    assert result is None
+
+
+def test_load_component_sizes_corrupt(tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text("NOT JSON")
+    result = overhead_calc.load_component_sizes(bad)
+    assert result is None
+
+
+def test_load_component_sizes_valid(tmp_path):
+    p = tmp_path / "sizes.json"
+    p.write_text('{"components":{}}')
+    result = overhead_calc.load_component_sizes(p)
+    assert result == {"components": {}}
+
+
+def test_cli_main_print(tmp_path, capsys):
+    with patch("sys.argv", ["overhead_calc.py", "--root", str(tmp_path), "--print"]):
+        overhead_calc.main()
+    out = capsys.readouterr().out
+    assert "TOTAL" in out
+    assert "component" in out.lower() or "Component" in out
+
+
+def test_cli_main_no_print(tmp_path):
+    with patch("sys.argv", ["overhead_calc.py", "--root", str(tmp_path)]):
+        overhead_calc.main()
+
+
+def test_cli_main_custom_output(tmp_path, capsys):
+    out_file = tmp_path / "out.json"
+    with patch("sys.argv", ["overhead_calc.py", "--root", str(tmp_path),
+                             "--output", str(out_file)]):
+        overhead_calc.main()
+    assert out_file.exists()

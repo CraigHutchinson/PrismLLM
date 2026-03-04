@@ -59,7 +59,7 @@ def read_prompt_log(path: Path = PROMPT_LOG_PATH, limit: int = 500) -> list[dict
 
 # ── Deterministic analysis ─────────────────────────────────────────────────────
 
-def analyse_patterns(
+def build_style_profile(
     entries: list[dict],
     verbosity_patterns: list[dict] | None = None,
 ) -> dict[str, Any]:
@@ -183,6 +183,9 @@ def write_style_profile(profile: dict[str, Any], path: Path = STYLE_PROFILE_PATH
     path.write_text(json.dumps(profile, indent=2), encoding="utf-8")
 
 
+analyse_patterns = build_style_profile  # backwards-compat alias
+
+
 def write_analysis_report(
     profile: dict[str, Any],
     output_dir: Path | None = None,
@@ -287,6 +290,64 @@ def generate_cursor_rule(profile: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def generate_claude_md_section(profile: dict[str, Any]) -> str:
+    """
+    Generate a CLAUDE.md personal style section from the style profile.
+    Suitable for insertion between PRISM_PERSONAL_STYLE_START/END markers.
+    """
+    today = date.today().isoformat()
+    patterns = profile.get("detected_patterns", [])
+    avg_eff = profile.get("avg_efficiency_ratio", 1.0)
+
+    lines = [
+        "",
+        f"### Personal Prompt Style (updated {today})",
+        "",
+    ]
+
+    if patterns:
+        lines.append("Detected habits:")
+        for p in patterns[:8]:
+            lines.append(
+                f'- "{p["pattern"]}" '
+                f'(~{p["frequency"]*100:.0f}% of prompts) — {p["suggestion"]}'
+            )
+        lines.append("")
+
+    lines += [
+        f"Average prompt efficiency ratio: {avg_eff:.2f} "
+        f"({round((1-avg_eff)*100, 1)}% estimated filler tokens)",
+        "",
+        "Proactively offer concise rewrites when these patterns appear.",
+        "",
+    ]
+
+    return "\n".join(lines)
+
+
+def apply_claude_md_section(section: str, claude_md_path: Path | None = None) -> None:
+    """
+    Write the personal style section into CLAUDE.md between the
+    PRISM_PERSONAL_STYLE_START / PRISM_PERSONAL_STYLE_END marker comments.
+    """
+    if claude_md_path is None:
+        claude_md_path = PRISM_ROOT / "CLAUDE.md"
+
+    if not claude_md_path.exists():
+        return
+
+    content = claude_md_path.read_text(encoding="utf-8")
+    start_marker = "<!-- PRISM_PERSONAL_STYLE_START -->"
+    end_marker   = "<!-- PRISM_PERSONAL_STYLE_END -->"
+
+    if start_marker not in content:
+        return
+
+    before = content[: content.index(start_marker) + len(start_marker)]
+    after  = content[content.index(end_marker):]
+    claude_md_path.write_text(before + "\n" + section + after, encoding="utf-8")
+
+
 def clear_analysis_needed_flag() -> None:
     ANALYSIS_NEEDED_FLAG.unlink(missing_ok=True)
 
@@ -298,7 +359,7 @@ def run(
     limit: int = 500,
 ) -> dict[str, Any]:
     entries = read_prompt_log(log_path, limit)
-    profile = analyse_patterns(entries)
+    profile = build_style_profile(entries)
     write_style_profile(profile)
     report_path = write_analysis_report(profile)
     clear_analysis_needed_flag()
@@ -320,9 +381,9 @@ def main() -> None:
     entries = read_prompt_log(Path(args.log), args.limit)
     if not entries:
         print("No prompts logged yet. Run /prism hook on to start collecting.", file=sys.stderr)
-        profile = analyse_patterns([])
+        profile = build_style_profile([])
     else:
-        profile = analyse_patterns(entries)
+        profile = build_style_profile(entries)
         write_style_profile(profile)
 
     if args.report:

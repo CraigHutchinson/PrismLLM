@@ -136,36 +136,33 @@ Load `refraction-playbook.md`. Diagnose the prompt's weaknesses without rewritin
 
 ## `/prism hook on`
 
-**Model routing:** None — mechanical file operation only.
+**Model routing:** None — deterministic script.
 
-Steps:
-1. Read `hooks/claude_settings_template.json`
-2. Replace `{{PRISM_ROOT}}` with the absolute path to this repo
-3. Write to `.claude/settings.json` (merge with any existing hooks — preserve non-Prism entries)
-4. Read `hooks/prism_hooks_template.json`, replace `{{PRISM_ROOT}}`, write to `.github/hooks/prism_hooks.json`
-5. Output confirmation:
-   ```
-   ✓ Prism hooks enabled.
-   Written: .claude/settings.json (Cursor + Claude Code)
-   Written: .github/hooks/prism_hooks.json (GitHub Copilot)
-   Restart your IDE to activate the hooks.
-   
-   Stage 1 (deterministic PII scan): active on every prompt
-   Stage 2 (LLM quality gate): active on every prompt (~200t/prompt)
-   Run /prism configure hook.stage2_lm_gate=false to disable Stage 2.
-   ```
+```bash
+python scripts/hook_installer.py --action on
+```
+
+The installer handles `{{PRISM_ROOT}}` substitution, idempotent JSON merge of `.claude/settings.json` (preserving non-Prism hooks), and writes `.github/hooks/prism_hooks.json` for Copilot. Output the installer's stdout verbatim.
 
 ## `/prism hook off`
 
-**Model routing:** None.
+**Model routing:** None — deterministic script.
 
-Remove all Prism-managed entries from `.claude/settings.json` and `.github/hooks/prism_hooks.json`. Preserve any non-Prism hooks. Output: "✓ Prism hooks disabled."
+```bash
+python scripts/hook_installer.py --action off
+```
+
+Removes all Prism-managed entries from both hook config files. Output the installer's stdout verbatim.
 
 ## `/prism hook status`
 
-**Model routing:** Fast model for report formatting only.
+**Model routing:** None — deterministic script.
 
-Check whether `.claude/settings.json` and `.github/hooks/prism_hooks.json` contain Prism hook entries. Report active stages and current platform.
+```bash
+python scripts/hook_installer.py --action status
+```
+
+Reports whether Prism hooks are active in `.claude/settings.json` and `.github/hooks/prism_hooks.json`. Output the installer's stdout verbatim.
 
 ---
 

@@ -113,13 +113,16 @@ def read_last_sessions(n: int = ROLLING_WINDOW) -> list[dict]:
     return entries[-n:]
 
 
-def read_summary() -> dict[str, Any]:
+def load_summary() -> dict[str, Any]:
     if SUMMARY_PATH.exists():
         try:
             return json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             pass
     return _empty_summary()
+
+
+read_summary = load_summary  # backwards-compat alias
 
 
 def _count_total_sessions() -> int:
@@ -255,7 +258,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.cmd == "summary":
-        summary = read_summary()
+        summary = load_summary()
         print(json.dumps(summary, indent=2))
 
     elif args.cmd == "sessions":

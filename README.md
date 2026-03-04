@@ -35,6 +35,7 @@ ln -s ~/.prism-skill/.cursor/skills/prism ~/.cursor/skills/prism  # macOS/Linux
 
 ### Claude Code
 
+**macOS / Linux:**
 ```bash
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
@@ -48,8 +49,25 @@ cp -r ~/.prism-skill/.claude/skills/prism-refract .claude/skills/
 # 3. /prism is now available as a slash command in Claude Code
 ```
 
+**Windows (PowerShell):**
+```powershell
+# 1. Clone the repo
+git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+
+# 2. Copy the skill files into your project's .claude\ directory
+$src = "$env:USERPROFILE\.prism-skill\.claude\skills"
+New-Item -ItemType Directory -Force ".claude\skills" | Out-Null
+Copy-Item -Recurse "$src\prism"           ".claude\skills\prism"
+Copy-Item -Recurse "$src\prism-sanitize"  ".claude\skills\prism-sanitize"
+Copy-Item -Recurse "$src\prism-score"     ".claude\skills\prism-score"
+Copy-Item -Recurse "$src\prism-refract"   ".claude\skills\prism-refract"
+
+# 3. /prism is now available as a slash command in Claude Code
+```
+
 ### GitHub Copilot
 
+**macOS / Linux:**
 ```bash
 # 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
@@ -57,6 +75,20 @@ git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 # 2. Copy platform files into your repo
 cp ~/.prism-skill/.github/agents/prism.agent.md .github/agents/
 cp ~/.prism-skill/.github/copilot-instructions.md .github/
+
+# 3. The @prism agent appears in Copilot Chat's agent selector
+```
+
+**Windows (PowerShell):**
+```powershell
+# 1. Clone the repo
+git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+
+# 2. Copy platform files into your repo
+$src = "$env:USERPROFILE\.prism-skill"
+New-Item -ItemType Directory -Force ".github\agents" | Out-Null
+Copy-Item "$src\.github\agents\prism.agent.md" ".github\agents\prism.agent.md"
+Copy-Item "$src\.github\copilot-instructions.md" ".github\copilot-instructions.md"
 
 # 3. The @prism agent appears in Copilot Chat's agent selector
 ```

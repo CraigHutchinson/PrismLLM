@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -95,3 +96,54 @@ def test_model_applies_all():
     rule = {"model_applies": ["all"], "model_deprecated": None}
     assert kb_query.model_applies(rule, "claude-3.5") is True
     assert kb_query.model_applies(rule, "claude-4+") is True
+
+
+def test_model_applies_deprecated():
+    rule = {"model_applies": ["claude-3+"], "model_deprecated": "claude-3.5"}
+    assert kb_query.model_applies(rule, "claude-3.5") is False
+
+
+def test_read_cache_corrupt(tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "badkey.json").write_text("NOT JSON")
+    result = kb_query.read_cache(cache_dir, "badkey")
+    assert result is None
+
+
+def test_read_cache_missing(tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    result = kb_query.read_cache(cache_dir, "missing")
+    assert result is None
+
+
+def test_cli_main_count(kb_tmp, capsys):
+    with patch("sys.argv", ["kb_query.py", "--pillar", "refraction",
+                             "--no-cache", "--count", "--kb", str(kb_tmp)]):
+        kb_query.main()
+    out = capsys.readouterr().out.strip()
+    assert out.isdigit()
+
+
+def test_cli_main_titles(kb_tmp, capsys):
+    with patch("sys.argv", ["kb_query.py", "--pillar", "refraction",
+                             "--no-cache", "--titles", "--kb", str(kb_tmp)]):
+        kb_query.main()
+    out = capsys.readouterr().out
+    assert "ref-" in out
+
+
+def test_cli_main_json_output(kb_tmp, capsys):
+    with patch("sys.argv", ["kb_query.py", "--no-cache", "--kb", str(kb_tmp)]):
+        kb_query.main()
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert isinstance(data, list)
+
+
+def test_cli_main_missing_kb(tmp_path, capsys):
+    with patch("sys.argv", ["kb_query.py", "--kb", str(tmp_path / "missing.json")]):
+        with pytest.raises(SystemExit) as exc_info:
+            kb_query.main()
+    assert exc_info.value.code == 1

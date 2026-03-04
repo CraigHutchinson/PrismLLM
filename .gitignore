@@ -31,6 +31,10 @@ venv/
 env/
 ENV/
 
+# ── Prism user-generated hook configs (created by /prism hook on) ─────────────
+.github/hooks/prism_hooks.json
+.claude/settings.json
+
 # ── Platform secrets & credentials ───────────────────────────────────────────
 *.pem
 *.key

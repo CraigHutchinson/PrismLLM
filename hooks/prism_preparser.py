@@ -191,21 +191,39 @@ def snapshot_overhead() -> None:
     try:
         import overhead_calc
         overhead_calc.run(PRISM_ROOT)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Prism] overhead_calc failed: {exc}", file=sys.stderr)
+        error_file = PRISM_DIR / ".overhead-error"
+        try:
+            PRISM_DIR.mkdir(parents=True, exist_ok=True)
+            error_file.write_text(str(exc), encoding="utf-8")
+        except OSError:
+            pass
 
 
 def _run_pattern_analysis_background() -> None:
     """Trigger pattern_analysis.py in a non-blocking subprocess."""
     import subprocess
     script = PRISM_ROOT / "scripts" / "pattern_analysis.py"
-    if script.exists():
-        subprocess.Popen(
-            [sys.executable, str(script)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            close_fds=True,
-        )
+    if not script.exists():
+        return
+
+    cmd = [sys.executable, str(script)]
+
+    try:
+        import platform_model as _pm
+        model = _pm.resolve_analysis_model()
+        if model:
+            cmd += ["--model", model]
+    except ImportError:
+        pass
+
+    subprocess.Popen(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        close_fds=True,
+    )
 
 
 def _write_session_entry(platform: str, config: dict) -> None:

@@ -46,7 +46,7 @@ PII_PATTERNS: list[tuple[str, str, str, re.Pattern]] = [
      re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{20,}\b")),
 
     ("API_KEY_GITHUB",   "[API_KEY_REDACTED]",   "block",
-     re.compile(r"\bghp_[A-Za-z0-9]{36}\b|\bgho_[A-Za-z0-9]{36}\b|\bghs_[A-Za-z0-9]{36}\b")),
+     re.compile(r"\bghp_[A-Za-z0-9]{20,}\b|\bgho_[A-Za-z0-9]{20,}\b|\bghs_[A-Za-z0-9]{20,}\b")),
 
     ("API_KEY_AWS",      "[API_KEY_REDACTED]",   "block",
      re.compile(r"\b(AKIA|ASIA|AROA|AIDA)[A-Z0-9]{16}\b")),
@@ -217,7 +217,7 @@ def scan(text: str) -> ScanResult:
 
     # ── Injection detection ──────────────────────────────────────────────────
     for category, description, pattern in INJECTION_PATTERNS:
-        matches = list(pattern.finditer(text, re.IGNORECASE))
+        matches = list(pattern.finditer(text))
         if matches:
             result.injection_risk = True
             result.safe = False

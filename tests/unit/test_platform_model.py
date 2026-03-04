@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 import platform_model
@@ -117,3 +118,69 @@ def test_ollama_model_when_enabled(tmp_path):
         }
     }))
     assert platform_model.get_ollama_model(cfg) == "llama3.2"
+
+
+def test_get_ollama_model_default_config_missing(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    result = platform_model.get_ollama_model(tmp_path / "missing.json")
+    assert result is None
+
+
+def test_get_ollama_model_corrupt_json(tmp_path):
+    cfg = tmp_path / "prism.config.json"
+    cfg.write_text("NOT JSON")
+    assert platform_model.get_ollama_model(cfg) is None
+
+
+def test_get_routing_mode_missing(tmp_path):
+    assert platform_model.get_routing_mode(tmp_path / "missing.json") == "platform"
+
+
+def test_get_routing_mode_corrupt(tmp_path):
+    cfg = tmp_path / "prism.config.json"
+    cfg.write_text("NOT JSON")
+    assert platform_model.get_routing_mode(cfg) == "platform"
+
+
+def test_get_routing_mode_valid(tmp_path):
+    cfg = tmp_path / "prism.config.json"
+    cfg.write_text(json.dumps({"model_routing": {"mode": "local"}}))
+    assert platform_model.get_routing_mode(cfg) == "local"
+
+
+def test_resolve_local_with_ollama(tmp_path):
+    cfg = tmp_path / "prism.config.json"
+    cfg.write_text(json.dumps({
+        "model_routing": {"mode": "local", "ollama": {"enabled": True, "model": "llama3.2"}}
+    }))
+    result = platform_model.resolve_analysis_model("cursor", config_path=cfg)
+    assert result == "llama3.2"
+
+
+def test_get_fast_model_auto_detect(monkeypatch):
+    _clean_env(monkeypatch)
+    monkeypatch.setenv("PRISM_PLATFORM", "claude_code")
+    result = platform_model.get_fast_model(None)
+    assert result == "claude-haiku-4-5"
+
+
+def test_cli_main_plain(capsys):
+    with patch("sys.argv", ["platform_model.py"]):
+        platform_model.main()
+    out = capsys.readouterr().out
+    assert isinstance(out.strip(), str)
+
+
+def test_cli_main_verbose(capsys):
+    with patch("sys.argv", ["platform_model.py", "--verbose"]):
+        platform_model.main()
+    out = capsys.readouterr().out
+    assert "Platform detected:" in out
+    assert "Routing mode:" in out
+
+
+def test_cli_main_platform_override(capsys):
+    with patch("sys.argv", ["platform_model.py", "--platform", "copilot"]):
+        platform_model.main()
+    out = capsys.readouterr().out
+    assert isinstance(out.strip(), str)

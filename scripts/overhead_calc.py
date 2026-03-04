@@ -139,7 +139,7 @@ def run(root: Path = PRISM_ROOT, output_path: Path | None = None) -> Dict[str, A
 
 def _now_iso() -> str:
     import datetime
-    return datetime.datetime.utcnow().isoformat() + "Z"
+    return datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def main() -> None:
