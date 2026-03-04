@@ -77,7 +77,7 @@ On Claude Code the format is always xml — this is the preferred Claude upgrade
 
 ## `/prism improve <file_path>` — Agent File Analysis Mode
 
-**Model routing:** None — deterministic script only.
+**Model routing:** Deterministic detection + fast LLM for agt-001 rewrites only.
 
 **File Detection:** Before Prompt Resolution, check whether the argument looks like a file path (contains `/`, `\`, or ends in `.md`, `.txt`, `.yaml`, `.json`). If the `Read` tool confirms the file exists, use this mode instead of the prompt pipeline.
 
@@ -88,9 +88,29 @@ python scripts/agent_review.py --file "<file_path>" --json
 
 **Step 2 — Present findings:**
 
-Display a numbered table (rule ID, severity, section, before, after) for every issue found.
+Display a numbered table (rule ID, severity, section, before, after) for every issue found. For agt-001 issues the `after` column will show `[LLM rewrite needed]` — the actual rewrite is generated in Step 2b.
 
-**Step 3 — Apply all fixes automatically:**
+**Step 2b — LLM rewrites for agt-001 issues (if any):**
+
+For each issue where `rule_id == "agt-001"`:
+1. Read the full file to understand context.
+2. Generate a positive-constraint rewrite of the `before` line that:
+   - Removes negation words ("never", "do not", "don't", "avoid").
+   - Expresses the constraint as what the agent *should* do, not what it must avoid.
+   - Preserves the original intent exactly.
+   - Matches the bullet style and indentation of the original.
+3. Build a JSON rewrite map: `{"<before text>": "<rewritten text>", ...}`
+
+Example: `"- Never add tests unless requested"` → `"- Add tests only when the project manager explicitly requests them."`
+
+**Step 3 — Apply all fixes:**
+
+If there are agt-001 issues, pass the rewrite map:
+```bash
+python scripts/agent_review.py --file "<file_path>" --apply --rewrite-map '<json_rewrite_map>'
+```
+
+If there are no agt-001 issues:
 ```bash
 python scripts/agent_review.py --file "<file_path>" --apply
 ```

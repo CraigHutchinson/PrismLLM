@@ -147,67 +147,32 @@ def _body_sections(body: str) -> dict[str, str]:
     return sections
 
 
-def _positive_rewrite(line: str) -> str:
-    """
-    Best-effort rewrite of a negative instruction as a positive constraint.
-    Works on bullet-list lines; returns original if no transformation found.
-    """
-    # Strip leading bullet markers for processing, restore at end
-    stripped = line.lstrip()
-    prefix = line[: len(line) - len(stripped)]
-    bullet_match = re.match(r"^(-|\*|\d+\.)\s*", stripped)
-    bullet = bullet_match.group(0) if bullet_match else ""
-    text = stripped[len(bullet):]
-
-    # "Never X" → "Only X when Y" / "X only when explicitly approved"
-    m = re.match(r"never\s+(.+)", text, re.IGNORECASE)
-    if m:
-        action = m.group(1).rstrip(".")
-        return f"{prefix}{bullet}{action.capitalize()}, only when explicitly approved."
-
-    # "Do not X" / "Don't X" → "X only when ..."
-    m = re.match(r"do\s+not\s+(.+)|don'?t\s+(.+)", text, re.IGNORECASE)
-    if m:
-        action = (m.group(1) or m.group(2)).rstrip(".")
-        return f"{prefix}{bullet}Restrict {action}; perform only when explicitly permitted."
-
-    # "Only X when Y" is already positive — leave it
-    if re.match(r"only\s+", text, re.IGNORECASE):
-        return line
-
-    # "Avoid X" → "Prefer not to X; confirm before proceeding"
-    m = re.match(r"avoid\s+(.+)", text, re.IGNORECASE)
-    if m:
-        action = m.group(1).rstrip(".")
-        return f"{prefix}{bullet}Prefer to avoid {action}; confirm before proceeding."
-
-    return line   # couldn't transform — return as-is
+_AGT001_PLACEHOLDER = "[LLM rewrite needed — Prism will generate this]"
 
 
 # ── Rule implementations ───────────────────────────────────────────────────────
 
 def _check_agt001(body: str, sections: dict[str, str]) -> list[Issue]:
-    """agt-001: Negative instruction → rewrite as positive constraint."""
+    """agt-001: Negative instruction — flags for LLM-assisted positive rewrite."""
     issues: list[Issue] = []
     for sec_name, sec_text in sections.items():
         for line in sec_text.splitlines():
             if not line.strip() or line.strip().startswith("#"):
                 continue
             if _NEGATIVE_RE.search(line):
-                rewritten = _positive_rewrite(line)
-                if rewritten != line:
-                    issues.append(Issue(
-                        rule_id="agt-001",
-                        severity="warn",
-                        section=sec_name,
-                        before=line.strip(),
-                        after=rewritten.strip(),
-                        explanation=(
-                            "Negative instructions increase model error rates. "
-                            "Rewrite as a positive constraint so the model "
-                            "knows what to do, not what to avoid."
-                        ),
-                    ))
+                issues.append(Issue(
+                    rule_id="agt-001",
+                    severity="warn",
+                    section=sec_name,
+                    before=line.strip(),
+                    after=_AGT001_PLACEHOLDER,
+                    explanation=(
+                        "Negative instructions increase model error rates. "
+                        "Rewrite as a positive constraint so the model "
+                        "knows what to do, not what to avoid. "
+                        "Run `/prism improve <file>` to generate the rewrite."
+                    ),
+                ))
     return issues
 
 
@@ -324,7 +289,11 @@ def _check_agt005(body: str) -> list[Issue]:
 
 # ── Apply fixes ───────────────────────────────────────────────────────────────
 
-def _apply_fixes(text: str, issues: list[Issue]) -> str:
+def _apply_fixes(
+    text: str,
+    issues: list[Issue],
+    rewrite_map: dict[str, str] | None = None,
+) -> str:
     """
     Rewrite `text` by applying each issue's `before` → `after` replacement.
 
@@ -332,11 +301,16 @@ def _apply_fixes(text: str, issues: list[Issue]) -> str:
     - agt-003/agt-004: frontmatter key replacements (line-level)
     - agt-002: line removals (replace with empty string and strip blank lines later)
     - agt-005: append a new section to the body
-    - agt-001: line-level rewrites inside the body
+    - agt-001: line-level LLM rewrites, applied only when `rewrite_map` provides
+               a mapping for issue.before.  Without the map the original line is
+               preserved so that broken placeholder text never lands in the file.
     """
+    rmap = rewrite_map or {}
     lines = text.splitlines(keepends=True)
     new_lines: list[str] = []
     agt005_additions: list[str] = []
+    # Track lines already emitted so agt-002 can remove later occurrences only
+    lines_kept: set[str] = set()
 
     for issue in issues:
         if issue.rule_id == "agt-005":
@@ -344,6 +318,7 @@ def _apply_fixes(text: str, issues: list[Issue]) -> str:
 
     for line in lines:
         stripped = line.rstrip("\n").rstrip("\r")
+        normalized = stripped.strip()
         replaced = False
 
         for issue in issues:
@@ -354,25 +329,28 @@ def _apply_fixes(text: str, issues: list[Issue]) -> str:
                 # Frontmatter key replacement: match the key prefix
                 key = issue.before.split(":")[0].strip()
                 if re.match(rf"^\s*{re.escape(key)}\s*:", stripped):
-                    # Build the replacement line preserving the YAML key
                     after_val = issue.after.split("\n")[0]
                     new_lines.append(after_val + "\n")
                     replaced = True
                     break
             elif issue.rule_id == "agt-002":
-                if stripped.strip() == issue.before.strip():
-                    # Remove duplicate — skip the line
+                if normalized == issue.before.strip() and normalized in lines_kept:
+                    # First occurrence is already kept; this is the duplicate → remove
                     replaced = True
                     break
             elif issue.rule_id == "agt-001":
                 if stripped.strip() == issue.before.strip():
-                    indent = len(stripped) - len(stripped.lstrip())
-                    new_lines.append(" " * indent + issue.after.lstrip() + "\n")
-                    replaced = True
+                    llm_rewrite = rmap.get(issue.before.strip())
+                    if llm_rewrite:
+                        indent = len(stripped) - len(stripped.lstrip())
+                        new_lines.append(" " * indent + llm_rewrite.lstrip() + "\n")
+                        replaced = True
+                    # Without a rewrite, fall through and keep the original line
                     break
 
         if not replaced:
             new_lines.append(line if line.endswith("\n") else line + "\n")
+            lines_kept.add(normalized)
 
     # Strip runs of 3+ blank lines caused by agt-002 removals
     result = "".join(new_lines)
@@ -406,11 +384,21 @@ def review(file_path: str | Path) -> ReviewResult:
     return ReviewResult(file=str(path), file_type=file_type, issues=issues)
 
 
-def apply_fixes(file_path: str | Path, result: ReviewResult) -> ReviewResult:
-    """Rewrite the file in-place with all issues fixed."""
+def apply_fixes(
+    file_path: str | Path,
+    result: ReviewResult,
+    rewrite_map: dict[str, str] | None = None,
+) -> ReviewResult:
+    """
+    Rewrite the file in-place with all issues fixed.
+
+    `rewrite_map` maps the original (before) text of each agt-001 issue to the
+    LLM-generated positive rewrite.  agt-001 lines without a map entry are left
+    unchanged to avoid writing broken placeholder text.
+    """
     path = Path(file_path)
     text = path.read_text(encoding="utf-8")
-    fixed = _apply_fixes(text, result.issues)
+    fixed = _apply_fixes(text, result.issues, rewrite_map=rewrite_map)
     path.write_text(fixed, encoding="utf-8")
     return ReviewResult(
         file=result.file,
@@ -426,7 +414,7 @@ def _out(text: str) -> None:
     """Print to stdout with a UTF-8 fallback for narrow console encodings."""
     try:
         print(text)
-    except UnicodeEncodeError:
+    except UnicodeEncodeError:  # pragma: no cover — platform-specific (Windows cp1252)
         print(text.encode("ascii", errors="replace").decode("ascii"))
 
 def _print_table(result: ReviewResult) -> None:
@@ -466,6 +454,16 @@ def main() -> None:
     parser.add_argument("--file", required=True, help="Path to the agent/skill markdown file")
     parser.add_argument("--json",  action="store_true", help="Output results as JSON")
     parser.add_argument("--apply", action="store_true", help="Rewrite the file with all fixes applied")
+    parser.add_argument(
+        "--rewrite-map",
+        default="{}",
+        metavar="JSON",
+        help=(
+            'JSON object mapping agt-001 "before" text to LLM-generated positive rewrites. '
+            'Example: --rewrite-map \'{"- Never add tests unless requested": '
+            '"- Add tests only when the project manager explicitly requests them."}\''
+        ),
+    )
     args = parser.parse_args()
 
     path = Path(args.file)
@@ -473,10 +471,16 @@ def main() -> None:
         print(f"Error: file not found: {path}", file=sys.stderr)
         sys.exit(1)
 
+    try:
+        rewrite_map: dict[str, str] = json.loads(args.rewrite_map)
+    except json.JSONDecodeError as exc:
+        print(f"Error: --rewrite-map is not valid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     result = review(path)
 
     if args.apply and result.issues:
-        result = apply_fixes(path, result)
+        result = apply_fixes(path, result, rewrite_map=rewrite_map or None)
 
     if args.json:
         print(json.dumps(result.to_dict(), indent=2))
@@ -486,5 +490,5 @@ def main() -> None:
     sys.exit(0)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

@@ -126,7 +126,8 @@ def test_agt001_issue_has_before_and_after(tmp_path):
     assert len(agt001) >= 1
     for issue in agt001:
         assert issue.before != ""
-        assert issue.after != ""
+        # after is a placeholder directing the user to run /prism improve for the LLM rewrite
+        assert issue.after == agent_review._AGT001_PLACEHOLDER
         assert issue.before != issue.after
 
 
@@ -195,6 +196,21 @@ def test_agt004_no_issue_when_description_is_clean(tmp_path):
     assert not any(i.rule_id == "agt-004" for i in result.issues)
 
 
+def test_agt004_description_only_example_uses_fallback(tmp_path):
+    """When the description text before <example> is empty, the fallback text is used."""
+    # _parse_frontmatter takes the raw value after ':', so no surrounding quotes here
+    fm = (
+        "---\nname: my-agent\n"
+        "description: <example>Context: foo. assistant: bar.</example>\n"
+        "model: claude-sonnet-4-5\ncolor: blue\n---\n"
+    )
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    agt004 = [i for i in result.issues if i.rule_id == "agt-004"]
+    assert len(agt004) == 1
+    assert "implement specific functionality" in agt004[0].after
+
+
 def test_agt004_after_suggests_body_section(tmp_path):
     p = _write_file(tmp_path, _FM_EXAMPLE_XML, _BODY_CLEAN)
     result = agent_review.review(p)
@@ -252,6 +268,14 @@ def test_skill_file_type_detected(tmp_path):
     assert result.file_type == "skill"
 
 
+def test_detect_file_type_no_name_returns_markdown(tmp_path):
+    """Frontmatter without a 'name' key → file_type is 'markdown'."""
+    fm = "---\nauthor: someone\nversion: 1\n---\n"
+    p = _write_file(tmp_path, fm, _BODY_CLEAN)
+    result = agent_review.review(p)
+    assert result.file_type == "markdown"
+
+
 # ── --apply rewrites the file ─────────────────────────────────────────────────
 
 def test_apply_rewrites_model_version(tmp_path):
@@ -264,14 +288,48 @@ def test_apply_rewrites_model_version(tmp_path):
     assert "model: sonnet\n" not in content
 
 
-def test_apply_rewrites_negative_instruction(tmp_path):
+def test_apply_without_rewrite_map_preserves_agt001_lines(tmp_path):
+    """Without a rewrite map, agt-001 lines must be left unchanged (no placeholders written)."""
     p = _write_file(tmp_path, _FM_VERSIONED, _BODY_NEGATIVE)
     result = agent_review.review(p)
     agent_review.apply_fixes(p, result)
     content = p.read_text(encoding="utf-8")
-    # Original negative lines should be gone
-    assert "Never add tests unless" not in content
-    assert "Do not read files in" not in content
+    # Negative lines must remain — not replaced with broken placeholder text
+    assert "Never add tests unless explicitly requested" in content
+    assert "Do not read files in the .agentlogs/ folder" in content
+    assert agent_review._AGT001_PLACEHOLDER not in content
+
+
+def test_apply_with_rewrite_map_applies_llm_rewrites(tmp_path):
+    """When a rewrite_map is provided, agt-001 lines are replaced with LLM rewrites."""
+    p = _write_file(tmp_path, _FM_VERSIONED, _BODY_NEGATIVE)
+    result = agent_review.review(p)
+    rewrite_map = {
+        "- Never add tests unless explicitly requested.": (
+            "- Add tests only when the project manager explicitly requests them."
+        ),
+        "- Do not read files in the .agentlogs/ folder.": (
+            "- Restrict file access to approved directories; skip .agentlogs/ unless explicitly permitted."
+        ),
+    }
+    agent_review.apply_fixes(p, result, rewrite_map=rewrite_map)
+    content = p.read_text(encoding="utf-8")
+    assert "Never add tests" not in content
+    assert "Do not read files" not in content
+    assert "Add tests only when" in content
+    assert agent_review._AGT001_PLACEHOLDER not in content
+
+
+def test_apply_removes_duplicate_instruction(tmp_path):
+    """apply_fixes removes agt-002 duplicate lines from the file."""
+    p = _write_file(tmp_path, _FM_VERSIONED, _BODY_DUPLICATE)
+    result = agent_review.review(p)
+    assert any(i.rule_id == "agt-002" for i in result.issues)
+    agent_review.apply_fixes(p, result)
+    content = p.read_text(encoding="utf-8")
+    # The duplicate line should appear only once after apply
+    count = content.count("Add tests only when explicitly requested by the project manager.")
+    assert count == 1
 
 
 def test_apply_appends_clarification_section(tmp_path):
@@ -351,6 +409,36 @@ def test_cli_apply_flag(tmp_path):
     assert exc.value.code == 0
     content = p.read_text(encoding="utf-8")
     assert "claude-sonnet-4-5" in content
+
+
+def test_cli_rewrite_map_flag(tmp_path):
+    """--rewrite-map applies LLM rewrites via the CLI."""
+    p = _write_file(tmp_path, _FM_VERSIONED, _BODY_NEGATIVE)
+    rewrite_map_json = (
+        '{"- Never add tests unless explicitly requested.": '
+        '"- Add tests only when the project manager explicitly requests them."}'
+    )
+    with patch("sys.argv", [
+        "agent_review.py", "--file", str(p), "--apply",
+        "--rewrite-map", rewrite_map_json,
+    ]):
+        with pytest.raises(SystemExit) as exc:
+            agent_review.main()
+    assert exc.value.code == 0
+    content = p.read_text(encoding="utf-8")
+    assert "Add tests only when the project manager explicitly requests them." in content
+
+
+def test_cli_rewrite_map_invalid_json(tmp_path):
+    """--rewrite-map with malformed JSON exits 1."""
+    p = _write_file(tmp_path, _FM_VERSIONED, _BODY_NEGATIVE)
+    with patch("sys.argv", [
+        "agent_review.py", "--file", str(p), "--apply",
+        "--rewrite-map", "not-json",
+    ]):
+        with pytest.raises(SystemExit) as exc:
+            agent_review.main()
+    assert exc.value.code == 1
 
 
 def test_cli_human_readable_no_issues(tmp_path, capsys):
