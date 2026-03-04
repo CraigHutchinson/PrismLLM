@@ -620,13 +620,30 @@ def test_extract_prompt_json_with_prompt_field():
 
 
 def test_extract_prompt_json_with_bom_prefix():
-    """Covers BOM stripping: Cursor prepends \\ufeff to every hook payload."""
+    """Covers single-char BOM (\\ufeff) stripping — correct UTF-8 decode path."""
     payload = "\ufeff" + json.dumps({
         "prompt": "add coverage badges",
         "user_email": "user@example.com",
         "conversation_id": "abc-123",
     })
     assert prism_preparser._extract_prompt(payload) == "add coverage badges"
+
+
+def test_extract_prompt_json_with_latin1_bom_prefix():
+    """
+    Covers the Latin-1/cp1252 BOM fallback (\\u00ef\\u00bb\\u00bf).
+
+    On Windows, sys.stdin defaults to cp1252.  If stdin is NOT read via
+    _read_stdin() (e.g. called from external code), the UTF-8 BOM bytes
+    (0xEF 0xBB 0xBF) are decoded as three separate Latin-1 characters.
+    _extract_prompt must still strip them and extract the prompt field.
+    """
+    latin1_bom = "\u00ef\u00bb\u00bf"
+    payload = latin1_bom + json.dumps({
+        "prompt": "refactor auth module",
+        "user_email": "user@example.com",
+    })
+    assert prism_preparser._extract_prompt(payload) == "refactor auth module"
 
 
 def test_extract_prompt_json_without_prompt_field():
@@ -639,6 +656,50 @@ def test_extract_prompt_invalid_json_starting_with_brace():
     """Covers the except (json.JSONDecodeError, ValueError) branch."""
     malformed = "{not valid json"
     assert prism_preparser._extract_prompt(malformed) == malformed
+
+
+# ── _read_stdin: encoding and BOM-stripping ───────────────────────────────────
+
+def test_read_stdin_strips_bom_via_buffer(monkeypatch):
+    """
+    Covers the sys.stdin.buffer path: BOM bytes are stripped by utf-8-sig,
+    so _extract_prompt receives clean JSON and extracts the prompt correctly.
+    """
+    cursor_payload = json.dumps({
+        "prompt": "this is a test message",
+        "user_email": "user@example.com",
+    })
+    bom_bytes = b"\xef\xbb\xbf" + cursor_payload.encode("utf-8")
+
+    fake_stdin = MagicMock()
+    fake_stdin.isatty.return_value = False
+    fake_stdin.buffer.read.return_value = bom_bytes
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+
+    text = prism_preparser._read_stdin()
+    # utf-8-sig strips the BOM; the result should be clean JSON
+    assert text.startswith("{")
+    assert "user_email" in text
+    # When passed through _extract_prompt, only the prompt field is returned
+    assert prism_preparser._extract_prompt(text) == "this is a test message"
+
+
+def test_read_stdin_fallback_no_buffer(monkeypatch):
+    """
+    Covers the AttributeError fallback when sys.stdin has no .buffer
+    (e.g. io.StringIO mock in tests).
+    """
+    monkeypatch.setattr(sys, "stdin", io.StringIO("plain text input"))
+    text = prism_preparser._read_stdin()
+    assert text == "plain text input"
+
+
+def test_read_stdin_tty_returns_empty(monkeypatch):
+    """Covers the isatty() early-return branch."""
+    fake_stdin = MagicMock()
+    fake_stdin.isatty.return_value = True
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+    assert prism_preparser._read_stdin() == ""
 
 
 # ── _debug_log: rotation and OSError branches ─────────────────────────────────

@@ -191,6 +191,28 @@ def handle_session_start(platform: str) -> dict:
     return output
 
 
+def _read_stdin() -> str:
+    """
+    Read all of stdin as a UTF-8 string, stripping a leading BOM if present.
+
+    On Windows, sys.stdin defaults to cp1252 encoding.  Cursor prepends the
+    UTF-8 BOM bytes (0xEF 0xBB 0xBF) to every hook payload; when those bytes
+    are decoded as cp1252 they produce three separate characters (\\u00ef\\u00bb\\u00bf)
+    rather than the single Unicode BOM character (\\ufeff).  Reading via
+    sys.stdin.buffer and decoding with 'utf-8-sig' fixes both issues: it decodes
+    correctly *and* strips the BOM automatically.
+
+    Falls back to sys.stdin.read() when sys.stdin has no .buffer attribute
+    (e.g. when mocked as io.StringIO in tests).
+    """
+    if sys.stdin.isatty():
+        return ""
+    try:
+        return sys.stdin.buffer.read().decode("utf-8-sig", errors="replace")
+    except AttributeError:
+        return sys.stdin.read()
+
+
 def _extract_prompt(raw: str) -> str:
     """
     Cursor/Claude Code passes hook payloads as JSON objects, e.g.:
@@ -200,10 +222,17 @@ def _extract_prompt(raw: str) -> str:
     Extract only the "prompt" field when the input is valid JSON with that key.
     Fall back to the raw string for plain-text input (backward compatible).
 
-    Cursor prepends a UTF-8 BOM (\\ufeff) to every hook payload, so strip it
-    before testing for a leading '{'.
+    Cursor prepends a UTF-8 BOM to every hook payload.  _read_stdin() decodes
+    via 'utf-8-sig' which strips the BOM automatically.  The lstrip calls below
+    are a secondary defence in case the caller passes text decoded with a
+    different codec (\\ufeff = single Unicode BOM; \\u00ef\\u00bb\\u00bf = BOM
+    bytes decoded as Latin-1/cp1252).
     """
-    stripped = raw.strip().lstrip("\ufeff").strip()
+    stripped = raw.strip()
+    if stripped.startswith("\ufeff"):
+        stripped = stripped[1:].strip()
+    elif stripped.startswith("\u00ef\u00bb\u00bf"):
+        stripped = stripped[3:].strip()
     if stripped.startswith("{"):
         try:
             payload = json.loads(stripped)
@@ -406,7 +435,7 @@ def main() -> None:
         sys.exit(0)
 
     elif args.event == "userPromptSubmit":
-        text = sys.stdin.read() if not sys.stdin.isatty() else ""
+        text = _read_stdin()
         if not text.strip():
             sys.exit(0)
         result = handle_user_prompt_submit(text, platform)
@@ -416,7 +445,7 @@ def main() -> None:
         sys.exit(0)
 
     elif args.event == "preToolUse":
-        tool_input = sys.stdin.read() if args.stdin and not sys.stdin.isatty() else ""
+        tool_input = _read_stdin() if args.stdin else ""
         result = handle_pre_tool_use(tool_input, platform)
         print(json.dumps(result))
         # Deny lives at the top level (Copilot/Cursor) or inside hookSpecificOutput (Claude Code).
