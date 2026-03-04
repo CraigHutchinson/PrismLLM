@@ -236,10 +236,8 @@ def handle_pre_tool_use(tool_input: str, platform: str) -> dict:
     _debug_log("preToolUse", tool_input, prompt, result, not result.safe)
     if not result.safe:
         reason = "; ".join(result.issues[:2]) if result.issues else "sensitive data or injection detected"
-        if platform == "copilot":
-            return {"permissionDecision": "deny", "reason": reason}
-        return _block_response(platform, f"Prism blocked tool use: {reason}")
-    return {"permissionDecision": "allow"} if platform == "copilot" else _continue_response(platform)
+        return _pre_tool_deny_response(platform, reason)
+    return _pre_tool_allow_response(platform)
 
 
 def handle_stop(platform: str) -> dict:
@@ -337,14 +335,43 @@ def _build_block_message(result: pii_scan.ScanResult) -> str:
 
 
 def _block_response(platform: str, message: str) -> dict:
+    """Block a UserPromptSubmit event."""
     if platform == "claude_code":
         return {"decision": "block", "reason": message}
     return {"continue": False, "user_message": message}
 
 
 def _continue_response(platform: str) -> dict:
+    """Allow a UserPromptSubmit event to proceed."""
     if platform == "claude_code":
         return {"decision": "continue"}
+    return {"continue": True}
+
+
+def _pre_tool_deny_response(platform: str, reason: str) -> dict:
+    """
+    Deny a PreToolUse event.
+
+    Claude Code expects the hookSpecificOutput envelope (per the hooks reference).
+    Copilot and Cursor use a flat permissionDecision / continue field.
+    """
+    if platform == "claude_code":
+        return {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+            }
+        }
+    if platform == "copilot":
+        return {"permissionDecision": "deny", "permissionDecisionReason": reason}
+    return {"continue": False, "user_message": f"Prism blocked tool use: {reason}"}
+
+
+def _pre_tool_allow_response(platform: str) -> dict:
+    """Allow a PreToolUse event to proceed."""
+    if platform == "copilot":
+        return {"permissionDecision": "allow"}
     return {"continue": True}
 
 
@@ -392,7 +419,14 @@ def main() -> None:
         tool_input = sys.stdin.read() if args.stdin and not sys.stdin.isatty() else ""
         result = handle_pre_tool_use(tool_input, platform)
         print(json.dumps(result))
-        if result.get("permissionDecision") == "deny":
+        # Deny lives at the top level (Copilot/Cursor) or inside hookSpecificOutput (Claude Code).
+        hook_output = result.get("hookSpecificOutput", {})
+        denied = (
+            result.get("permissionDecision") == "deny"
+            or hook_output.get("permissionDecision") == "deny"
+            or result.get("continue") is False
+        )
+        if denied:
             sys.exit(2)
         sys.exit(0)
 

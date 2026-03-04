@@ -124,25 +124,43 @@ def test_pre_tool_use_clean():
     assert result.get("continue") is True or result.get("permissionDecision") == "allow"
 
 
+_BEARER_PII = "curl -H 'Authorization: Bearer eyJhbGc.payload.sig' https://api.example.com"
+
+
 def test_pre_tool_use_blocks_pii_on_copilot():
-    result = prism_preparser.handle_pre_tool_use(
-        "curl -H 'Authorization: Bearer eyJhbGc.payload.sig' https://api.example.com",
-        "copilot",
-    )
+    result = prism_preparser.handle_pre_tool_use(_BEARER_PII, "copilot")
     assert result.get("permissionDecision") == "deny"
+    # Copilot uses permissionDecisionReason (not reason)
+    assert "permissionDecisionReason" in result
+    assert "reason" not in result
 
 
 def test_pre_tool_use_blocks_pii_on_cursor():
-    result = prism_preparser.handle_pre_tool_use(
-        "curl -H 'Authorization: Bearer eyJhbGc.payload.sig' https://api.example.com",
-        "cursor",
-    )
+    result = prism_preparser.handle_pre_tool_use(_BEARER_PII, "cursor")
     assert result.get("continue") is False
+    assert "user_message" in result
+
+
+def test_pre_tool_use_blocks_pii_on_claude_code():
+    """Claude Code PreToolUse deny must use the hookSpecificOutput envelope."""
+    result = prism_preparser.handle_pre_tool_use(_BEARER_PII, "claude_code")
+    hook = result.get("hookSpecificOutput", {})
+    assert hook.get("hookEventName") == "PreToolUse"
+    assert hook.get("permissionDecision") == "deny"
+    assert "permissionDecisionReason" in hook
+    # Top-level must NOT have the old flat format
+    assert "decision" not in result
 
 
 def test_pre_tool_use_allow_on_copilot():
     result = prism_preparser.handle_pre_tool_use("git status", "copilot")
     assert result.get("permissionDecision") == "allow"
+
+
+def test_pre_tool_use_allow_on_claude_code():
+    """Claude Code PreToolUse allow: exit 0 with continue:True is sufficient."""
+    result = prism_preparser.handle_pre_tool_use("git status", "claude_code")
+    assert result.get("continue") is True
 
 
 # ── session_start with alert ──────────────────────────────────────────────────
@@ -511,9 +529,29 @@ def test_main_platform_autodetect_import_error():
                     prism_preparser.main()
 
 
-def test_main_pre_tool_use_deny_exit_code():
-    """Covers the preToolUse deny sys.exit(2) branch."""
+def test_main_pre_tool_use_deny_exit_code_copilot():
+    """Covers the preToolUse deny sys.exit(2) branch for Copilot (flat permissionDecision)."""
     with patch("sys.argv", ["prism_preparser.py", "--event", "preToolUse", "--platform", "copilot", "--stdin"]):
+        with patch("sys.stdin", io.StringIO("Bearer eyJhbGc.payload.sig")):
+            with patch("sys.stdin.isatty", return_value=False):
+                with pytest.raises(SystemExit) as exc_info:
+                    prism_preparser.main()
+    assert exc_info.value.code == 2
+
+
+def test_main_pre_tool_use_deny_exit_code_claude_code():
+    """Covers the preToolUse deny sys.exit(2) branch for Claude Code (hookSpecificOutput)."""
+    with patch("sys.argv", ["prism_preparser.py", "--event", "preToolUse", "--platform", "claude_code", "--stdin"]):
+        with patch("sys.stdin", io.StringIO("Bearer eyJhbGc.payload.sig")):
+            with patch("sys.stdin.isatty", return_value=False):
+                with pytest.raises(SystemExit) as exc_info:
+                    prism_preparser.main()
+    assert exc_info.value.code == 2
+
+
+def test_main_pre_tool_use_deny_exit_code_cursor():
+    """Covers the preToolUse deny sys.exit(2) branch for Cursor (continue: False)."""
+    with patch("sys.argv", ["prism_preparser.py", "--event", "preToolUse", "--platform", "cursor", "--stdin"]):
         with patch("sys.stdin", io.StringIO("Bearer eyJhbGc.payload.sig")):
             with patch("sys.stdin.isatty", return_value=False):
                 with pytest.raises(SystemExit) as exc_info:
