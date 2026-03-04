@@ -64,6 +64,24 @@ Prints a live introduction: three pillars, real-time Stage 1 + Stage 2 demo on a
 
 ---
 
+## `/prism format`
+
+**Model routing:** None — deterministic script.
+
+```
+run_terminal_command: python scripts/format_output.py --detect-format
+```
+
+Prints the structural format Prism will use on this platform. On Copilot (GPT-4), the
+format is `markdown` — Markdown headers are preferred over XML for GPT-4 (ref-016).
+
+To render a sample in Markdown format:
+```
+run_terminal_command: python scripts/format_output.py --task "Add a login page" --context "Auth module" --constraints "No third-party libs"
+```
+
+---
+
 ## Example Usage
 
 **Get an introduction (new users):**

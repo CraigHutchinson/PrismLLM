@@ -409,7 +409,96 @@ You are a patient teacher explaining concepts to a beginner. Use simple language
 
 ---
 
-## 10. Model-Version Alignment Notes
+## 10. Format Selection — Which Structural Syntax to Use
+
+Different model families respond best to different structural syntaxes. Always
+select format **before** writing the prompt; Prism auto-detects this via
+`scripts/format_output.py --detect-format` or `platform_model.detect_platform()`.
+
+### The Three Formats
+
+| Format | Syntax | Default for | Best when |
+|--------|--------|-------------|-----------|
+| **Markdown** | `## Task` / `## Context` | All unknown platforms | GPT-4 (Copilot), Gemini, cross-model portability |
+| **XML** | `<task>` / `<context>` | Cursor, Claude Code | Claude 3.5+ — strongest adherence, cache_control support |
+| **Prefixed** | `TASK:` / `CONTEXT:` | Explicit fallback only | Constrained contexts, older/smaller models |
+
+### Decision Logic (rules ref-016, ref-017, ref-018)
+
+```
+platform == cursor or claude_code  →  use xml
+platform == copilot or unknown     →  use markdown   ← default
+explicit --format flag             →  use that format
+constrained context window (<200t) →  use prefixed
+```
+
+Run `python scripts/format_output.py --detect-format` to check what format Prism
+would choose in the current environment.
+
+### Side-by-Side Example
+
+**Markdown (default/portable)**
+```markdown
+## Task
+Add a login page: form fields, validation, POST to /auth/login.
+
+## Context
+Flask backend, UserSession model already exists.
+
+## Constraints
+No third-party auth libs. Use the existing UserSession model.
+```
+
+**XML (Claude upgrade)**
+```xml
+<task>Add a login page: form fields, validation, POST to /auth/login.</task>
+
+<context>Flask backend, UserSession model already exists.</context>
+
+<constraints>No third-party auth libs. Use the existing UserSession model.</constraints>
+```
+
+**Prefixed (fallback)**
+```
+TASK: Add a login page: form fields, validation, POST to /auth/login.
+
+CONTEXT: Flask backend, UserSession model already exists.
+
+CONSTRAINTS: No third-party auth libs. Use the existing UserSession model.
+```
+
+### Using the Format Renderer
+
+```bash
+# Detect format for current environment
+python scripts/format_output.py --detect-format
+
+# Render a prompt (uses auto-detected format)
+python scripts/format_output.py \
+  --task "Add a login page" \
+  --context "Flask app, UserSession model" \
+  --constraints "No third-party auth libs"
+
+# Force XML for a Claude-specific prompt
+python scripts/format_output.py --task "..." --format xml
+
+# Force Markdown for portability
+python scripts/format_output.py --task "..." --format markdown
+
+# JSON output (format name + rendered text)
+python scripts/format_output.py --task "..." --json
+```
+
+### When Refracting a User Prompt
+
+1. Call `select_format(platform)` or `--detect-format` first.
+2. Use that format for all structural blocks in the rewritten prompt.
+3. Note the format in the Why Log: `[REFRACTION] Format: markdown (portable default) [rule: ref-016]`
+4. If the platform is Claude and XML is available, note the upgrade: `[REFRACTION] Format: xml (Claude upgrade) [rule: ref-017]`
+
+---
+
+## 11. Model-Version Alignment Notes
 
 ### Claude 3.5
 

@@ -60,6 +60,74 @@ class TestHelloCli:
 
 
 # ---------------------------------------------------------------------------
+# format_output.py
+# ---------------------------------------------------------------------------
+
+class TestFormatOutputCli:
+    def test_detect_format_exits_zero(self):
+        result = run_script("format_output.py", "--detect-format")
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip() in ("markdown", "xml", "prefixed")
+
+    def test_detect_format_copilot(self):
+        result = run_script("format_output.py", "--detect-format", "--platform", "copilot")
+        assert result.returncode == 0
+        assert result.stdout.strip() == "markdown"
+
+    def test_detect_format_cursor(self):
+        result = run_script("format_output.py", "--detect-format", "--platform", "cursor")
+        assert result.returncode == 0
+        assert result.stdout.strip() == "xml"
+
+    def test_render_markdown(self):
+        result = run_script(
+            "format_output.py",
+            "--task", "Add login",
+            "--context", "Flask app",
+            "--format", "markdown",
+        )
+        assert result.returncode == 0
+        assert "## Task" in result.stdout
+        assert "## Context" in result.stdout
+
+    def test_render_xml(self):
+        result = run_script(
+            "format_output.py",
+            "--task", "Add login",
+            "--format", "xml",
+        )
+        assert result.returncode == 0
+        assert "<task>" in result.stdout
+
+    def test_render_prefixed(self):
+        result = run_script(
+            "format_output.py",
+            "--task", "Add login",
+            "--format", "prefixed",
+        )
+        assert result.returncode == 0
+        assert "TASK:" in result.stdout
+
+    def test_json_output(self):
+        result = run_script(
+            "format_output.py",
+            "--task", "Add login",
+            "--format", "markdown",
+            "--json",
+        )
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        assert data["format"] == "markdown"
+        assert "## Task" in data["output"]
+
+    def test_stdin_input(self):
+        result = run_script("format_output.py", "--format", "markdown",
+                            input_text="Build a login page")
+        assert result.returncode == 0
+        assert "Build a login page" in result.stdout
+
+
+# ---------------------------------------------------------------------------
 # pii_scan.py
 # ---------------------------------------------------------------------------
 

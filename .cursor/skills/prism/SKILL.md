@@ -4,8 +4,8 @@ description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
   /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
-  /prism hook on/off/status, /prism patterns, /prism usage, /prism configure,
-  or asks to optimize or analyze a prompt for an AI model.
+  /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
+  /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""
 allowed-tools: Read, Bash
@@ -53,9 +53,38 @@ Prints a live interactive introduction: the three pillars, a real-time Stage 1 +
 
 ---
 
+## `/prism format` — Detect and show the active structural format
+
+**Model routing:** None — deterministic script, zero model cost.
+
+```bash
+python scripts/format_output.py --detect-format
+```
+
+Prints which structural format (`markdown`, `xml`, or `prefixed`) Prism will use
+for this platform. To render a sample:
+
+```bash
+python scripts/format_output.py \
+  --task "Add a login page" \
+  --context "Flask app, UserSession model" \
+  --constraints "No third-party auth libs"
+```
+
+Format rules: `ref-016` (markdown default), `ref-017` (xml for Claude), `ref-018` (prefixed fallback).
+
+---
+
 ## `/prism improve-prompt "<prompt>"`
 
 **Model routing:** Fast model for Subagents A/B/C (parallel in Claude Code, sequential in Cursor). Capable model for synthesis.
+
+**Step 0 — Detect output format (no model):**
+```bash
+python scripts/format_output.py --detect-format
+```
+Use the returned format (`markdown`, `xml`, or `prefixed`) for all structural
+blocks in the rewritten prompt. Note it in the Why Log.
 
 **Step 1 — PII scan (no model):**
 ```bash
@@ -80,7 +109,8 @@ python scripts/kb_query.py --pillar introspection --apply-cost script,fast
 
 **Step 3 — Synthesis (capable model always):**
 
-Merge the three analysis outputs and rewrite the prompt. Output:
+Merge the three analysis outputs and rewrite the prompt using the detected format.
+For Cursor/Claude Code (xml):
 
 ```
 ### Prism-Optimized Prompt
@@ -89,9 +119,29 @@ Merge the three analysis outputs and rewrite the prompt. Output:
 <context>[relevant background]</context>
 <task>[the core ask, terse imperative]</task>
 <constraints>[format, length, style constraints]</constraints>
+```
 
+For Copilot / unknown platform (markdown, default):
+
+```
+### Prism-Optimized Prompt
+
+## Context
+[relevant background]
+
+## Task
+[the core ask, terse imperative]
+
+## Constraints
+[format, length, style constraints]
+```
+
+Then always append:
+
+```
 ### Why Log
-- [REFRACTION] [change description] [rule: ref-XXX, source: type]
+- [REFRACTION] Format: <format> (<reason>) [rule: ref-016 or ref-017]
+- [REFRACTION] [other change] [rule: ref-XXX, source: type]
 - [SANITIZATION] [issue found or "no issues"] [rule: san-XXX]
 - [INTROSPECTION] [optimization applied] [rule: int-XXX]
 

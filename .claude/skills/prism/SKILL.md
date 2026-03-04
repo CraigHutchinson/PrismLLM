@@ -4,8 +4,8 @@ description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
   /prism improve-prompt, /prism sanitize, /prism score, /prism explain,
-  /prism hook on/off/status, /prism patterns, /prism usage, /prism configure,
-  or asks to optimize or analyze a prompt for an AI model.
+  /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
+  /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""
 allowed-tools: Read, Bash
@@ -49,6 +49,29 @@ python scripts/hello.py
 ```
 
 Prints a live introduction: three pillars, real-time Stage 1 + Stage 2 demo on a built-in sample prompt, and top first commands. Output the script's stdout verbatim. This is the recommended first command for new users.
+
+---
+
+## `/prism format`
+
+**Model routing:** None — deterministic script.
+
+```bash
+python scripts/format_output.py --detect-format
+```
+
+Prints the structural format (`xml`, `markdown`, or `prefixed`) that Prism will use
+on this platform (Claude Code always → xml). To render a sample prompt:
+
+```bash
+python scripts/format_output.py \
+  --task "Add a login page" \
+  --context "Flask app, UserSession model" \
+  --constraints "No third-party auth libs"
+```
+
+Format rules: `ref-016` (markdown default), `ref-017` (xml for Claude), `ref-018` (prefixed fallback).
+On Claude Code the format is always xml — this is the preferred Claude upgrade (ref-017).
 
 ---
 

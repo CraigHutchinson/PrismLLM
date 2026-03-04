@@ -163,12 +163,14 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
         lines += [
             "",
             "  This prompt scores ~22/100 (ARS). After /prism improve-prompt:",
-            "    \u2022 Bundled task split into two sequential <task> blocks" if uni
-            else "    * Bundled task split into two sequential <task> blocks",
-            "    \u2022 'we shall' filler removed (-2 tokens)" if uni
-            else "    * 'we shall' filler removed (-2 tokens)",
-            "    \u2022 <context> and <constraints> blocks added" if uni
-            else "    * <context> and <constraints> blocks added",
+            "    \u2022 Format: markdown (portable default, ref-016)" if uni
+            else "    * Format: markdown (portable default, ref-016)",
+            "    \u2022 Bundled task split into two numbered steps (ref-007)" if uni
+            else "    * Bundled task split into two numbered steps (ref-007)",
+            "    \u2022 'we shall' filler removed (-2 tokens, ref-002)" if uni
+            else "    * 'we shall' filler removed (-2 tokens, ref-002)",
+            "    \u2022 ## Context and ## Constraints sections added (ref-001)" if uni
+            else "    * ## Context and ## Constraints sections added (ref-001)",
             "    \u2022 Score climbs to ~88/100" if uni
             else "    * Score climbs to ~88/100",
         ]
@@ -181,6 +183,7 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
     lines.append(rule)
     lines += [
         "  /prism improve-prompt \"your prompt\"   Full pipeline + rewrite",
+        "  /prism format                         Show active structural format",
         "  /prism sanitize \"your prompt\"         PII + injection check",
         "  /prism score \"your prompt\"            Quick quality score (0-100)",
         "  /prism explain \"your prompt\"          Diagnose without rewriting",

@@ -93,7 +93,7 @@ def check_scripts_present(repo_root: Path) -> dict:
     required = [
         "pii_scan.py", "kb_query.py", "overhead_calc.py",
         "platform_model.py", "pattern_analysis.py", "usage_log.py",
-        "hook_installer.py", "stage2_gate.py", "hello.py",
+        "hook_installer.py", "stage2_gate.py", "hello.py", "format_output.py",
     ]
     missing = [f for f in required if not (repo_root / "scripts" / f).exists()]
     if not missing:

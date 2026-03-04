@@ -558,5 +558,53 @@
     "confidence": "high",
     "apply_cost": "fast",
     "tags": ["cot", "reasoning", "appropriateness"]
+  },
+  {
+    "id": "ref-016",
+    "pillar": "refraction",
+    "category": "format-selection",
+    "title": "Default to Markdown headers as the portable structural format",
+    "rule": "When the target model is unknown or the platform is not Claude-specific (e.g. GPT-4 via GitHub Copilot, Gemini), use Markdown headers (## Task, ## Context, ## Constraints) as the structural format. Markdown is understood by all major models and degrades gracefully on models with no structural preference. Only upgrade to XML when the platform is confirmed to be Claude 3.5+.",
+    "model_applies": ["all"],
+    "model_deprecated": null,
+    "source_url": "https://www.promptingguide.ai/",
+    "source_type": "community",
+    "example_bad": "<task>Add a login page.</task>\n<context>Flask app.</context>  [XML on a GPT-4 model — suboptimal]",
+    "example_good": "## Task\nAdd a login page.\n\n## Context\nFlask app.  [Markdown — works on all models]",
+    "confidence": "high",
+    "apply_cost": "script",
+    "tags": ["format", "markdown", "portability", "cross-model"]
+  },
+  {
+    "id": "ref-017",
+    "pillar": "refraction",
+    "category": "format-selection",
+    "title": "Upgrade to XML tags on confirmed Claude 3.5+ platforms",
+    "rule": "When the platform is confirmed to be Claude (Cursor or Claude Code), prefer XML tags over Markdown headers. Claude 3.5+ has native XML comprehension, uses tags for cache_control breakpoints, and shows stronger instruction adherence with well-formed XML structure. Detect platform via PRISM_PLATFORM env var or platform_model.detect_platform().",
+    "model_applies": ["claude-3.5+"],
+    "model_deprecated": null,
+    "source_url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags",
+    "source_type": "official",
+    "example_bad": "## Task\nSummarize this document.  [Markdown on Claude — misses XML adherence benefits]",
+    "example_good": "<task>Summarize this document.</task>  [XML on Claude 3.5+ — best adherence]",
+    "confidence": "high",
+    "apply_cost": "script",
+    "tags": ["format", "xml", "claude", "platform-specific"]
+  },
+  {
+    "id": "ref-018",
+    "pillar": "refraction",
+    "category": "format-selection",
+    "title": "Use prefixed-line notation as a universal fallback for constrained contexts",
+    "rule": "When output length is constrained (e.g. tool context windows, SMS, API fields) or the target is a small/older model, use prefixed-line notation (TASK: ..., CONTEXT: ..., CONSTRAINTS: ...). This format has zero structural overhead, is unambiguous for all models including smaller ones, and is the most human-readable when rendered as plain text.",
+    "model_applies": ["all"],
+    "model_deprecated": null,
+    "source_url": "https://www.promptingguide.ai/",
+    "source_type": "community",
+    "example_bad": "## Task\nSummarize.  [Markdown header adds overhead in a 200-token context window]",
+    "example_good": "TASK: Summarize in 3 sentences.\nCONTEXT: Research paper on LLMs.",
+    "confidence": "medium",
+    "apply_cost": "script",
+    "tags": ["format", "prefixed", "fallback", "constrained"]
   }
 ]

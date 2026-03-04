@@ -16,6 +16,7 @@ Invoke the Prism agent directly in Copilot Chat:
 
 ```
 @prism hello                                          Interactive intro + live demo
+@prism format                                         Show active structural format
 @prism improve-prompt "add a login page to the auth module and also write the tests"
 @prism sanitize "send results to user@example.com when done"
 @prism score "refactor the database connection pool"

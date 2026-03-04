@@ -34,22 +34,38 @@ Without Prism:
 we shall add a login page and also write the tests
 ```
 
-After `/prism improve-prompt`:
-```xml
-<context>Auth module, existing session-management layer.</context>
-<task id="1">Add a login page: form fields, validation, POST to /auth/login.</task>
-<task id="2">Write unit tests for the login endpoint (happy path + 3 error cases).</task>
-<constraints>No third-party auth libs. Use the existing UserSession model.</constraints>
+After `/prism improve-prompt` — Markdown (default, works on all models):
+```markdown
+## Context
+Auth module, existing session-management layer.
+
+## Task
+1. Add a login page: form fields, validation, POST to /auth/login.
+2. Write unit tests for the login endpoint (happy path + 3 error cases).
+
+## Constraints
+No third-party auth libs. Use the existing UserSession model.
 ```
 ```
 ### Why Log
-- [REFRACTION]    Bundled task split into two sequential <task> blocks  [rule: ref-007]
-- [REFRACTION]    Filler phrase "we shall" removed (−2 tokens)          [rule: ref-002]
-- [REFRACTION]    <context> and <constraints> blocks added              [rule: ref-001]
-- [SANITIZATION]  No PII or injection patterns found ✓
-- [INTROSPECTION] Score: 22 → 88 / 100
+- [REFRACTION] Format: markdown (portable default)          [rule: ref-016]
+- [REFRACTION] Bundled task split into two numbered steps   [rule: ref-007]
+- [REFRACTION] Filler phrase "we shall" removed (-2 tokens) [rule: ref-002]
+- [REFRACTION] ## Context and ## Constraints sections added [rule: ref-001]
+- [SANITIZATION]  No PII or injection patterns found
+- [INTROSPECTION] Score: 22 -> 88 / 100
 
 ### Prism Overhead This Run: ~1,340t
+```
+
+On Cursor or Claude Code, Prism auto-upgrades to XML (`ref-017`):
+```xml
+<context>Auth module, existing session-management layer.</context>
+<task>
+1. Add a login page: form fields, validation, POST to /auth/login.
+2. Write unit tests for the login endpoint (happy path + 3 error cases).
+</task>
+<constraints>No third-party auth libs. Use the existing UserSession model.</constraints>
 ```
 
 ---
@@ -179,7 +195,7 @@ Prism Install Verifier
 ======================
   OK Python 3.11 (>= 3.9 required)
   OK jsonschema 4.26.0 installed
-  OK All 9 core scripts present
+  OK All 10 core scripts present
   OK Hook script present (hooks/prism_preparser.py)
   OK All 3 data files present
   OK JSON schemas valid (4 schemas, 35 rules)
@@ -209,6 +225,7 @@ If any check fails, a one-line fix hint is printed alongside the failure.
 | Command | What it does | Model cost |
 |---------|-------------|-----------|
 | `/prism improve-prompt "..."` | Full pipeline: sanitize → score → refract → rewrite with Why Log | Fast × 3 + Capable × 1 |
+| `/prism format` | Show active structural format (markdown/xml/prefixed) for this platform | None |
 | `/prism sanitize "..."` | PII + injection scan | None (script) |
 | `/prism score "..."` | 5-dimension Agentic Readiness Score (0–100) + tips | Fast model |
 | `/prism explain "..."` | Diagnose a prompt without rewriting it | Fast model |
@@ -236,6 +253,20 @@ If any check fails, a one-line fix hint is printed alongside the failure.
 | `/prism usage` | Show 30-session overhead history | None |
 | `/prism usage --optimize` | Get suggestions to reduce overhead | Fast model |
 | `/prism configure key=value` | Toggle features in prism.config.json | None |
+
+---
+
+## Structural Formats
+
+Prism selects the optimal structural syntax based on the detected platform. The default is **Markdown headers** — portable across all models. Run `/prism format` to see which format is active.
+
+| Format | Command | Best for | Auto-selected when |
+|--------|---------|----------|--------------------|
+| **Markdown** (default) | `## Task` / `## Context` | All models — GPT-4, Gemini, Claude | Platform unknown or Copilot |
+| **XML** | `<task>` / `<context>` | Claude 3.5+ only | Cursor or Claude Code detected |
+| **Prefixed** | `TASK:` / `CONTEXT:` | Constrained contexts, older models | Explicit `--format prefixed` only |
+
+Override at any time: `/prism improve-prompt "..." --format xml`
 
 ---
 
@@ -336,6 +367,7 @@ PrismLLM/
 │   └── prism_hooks_template.json
 │
 ├── scripts/
+│   ├── format_output.py       ← /prism format — selects markdown/xml/prefixed (no model)
 │   ├── hello.py               ← /prism hello intro + live demo (no model)
 │   ├── pii_scan.py            ← Regex PII + injection scanner (no model)
 │   ├── stage2_gate.py         ← Stage 2 quality gate — heuristic (no model)
