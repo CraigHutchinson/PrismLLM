@@ -25,8 +25,8 @@ jobs:
 
       - name: Check security-critical coverage (pii_scan, prism_preparser)
         run: |
-          pytest tests/unit/test_pii_scan.py tests/integration/test_hook_preparser.py \
-            --cov=scripts/pii_scan --cov=hooks/prism_preparser \
+          PYTHONPATH=scripts:hooks pytest tests/unit/test_pii_scan.py tests/integration/test_hook_preparser.py \
+            --cov=pii_scan --cov=prism_preparser \
             --cov-fail-under=100
 
       - name: Validate JSON schemas
