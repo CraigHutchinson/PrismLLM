@@ -10,7 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-import scripts.usage_log as ul
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
+import usage_log as ul
 
 
 # ── path-patching helper ───────────────────────────────────────────────────────
