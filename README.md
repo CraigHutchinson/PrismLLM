@@ -6,67 +6,71 @@
 
 ---
 
-## Quick Start (3 commands)
+## Quick Start (2 commands)
 
 ```bash
 # 1. Clone
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 
-# 2. Install dependencies
-pip install -r ~/.prism-skill/requirements.txt
-
-# 3. Configure your platform (cursor, claude, or copilot)
-python ~/.prism-skill/configure.py cursor
-
-# 4. Verify everything is healthy
-python ~/.prism-skill/scripts/verify_install.py
-
-# 5. Run your first Prism command
-/prism hello
+# 2. Configure — installs deps, checks for updates, sets up all platforms, self-checks
+python ~/.prism-skill/configure.py
 ```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+python "$env:USERPROFILE\.prism-skill\configure.py"
+```
+
+Then run your first Prism command: `/prism hello`
+
+> Tip: Pass a platform name to install selectively: `configure.py cursor`, `configure.py claude`, `configure.py copilot`.
 
 ---
 
 ## Before / After
 
-Without Prism:
+Type this into any AI chat — no project setup needed:
+
 ```
-we shall add a login page and also write the tests
+write a python function that checks if a string is a valid email also add
+some unit tests and maybe handle edge cases like empty strings
 ```
 
 After `/prism improve-prompt` — Markdown (default, works on all models):
-```markdown
-## Context
-Auth module, existing session-management layer.
 
+```markdown
 ## Task
-1. Add a login page: form fields, validation, POST to /auth/login.
-2. Write unit tests for the login endpoint (happy path + 3 error cases).
+1. Write a Python function `is_valid_email(email: str) -> bool` using regex only (no third-party libs).
+2. Write unit tests covering: valid address, empty string, missing `@`, multiple `@`, no domain extension.
 
 ## Constraints
-No third-party auth libs. Use the existing UserSession model.
+- Regex only — no `email-validator` or similar packages.
+- Return `False` for invalid input; do not raise.
 ```
 ```
 ### Why Log
-- [REFRACTION] Format: markdown (portable default)          [rule: ref-016]
-- [REFRACTION] Bundled task split into two numbered steps   [rule: ref-007]
-- [REFRACTION] Filler phrase "we shall" removed (-2 tokens) [rule: ref-002]
-- [REFRACTION] ## Context and ## Constraints sections added [rule: ref-001]
+- [REFRACTION] Format: markdown (portable default)                      [rule: ref-016]
+- [REFRACTION] Filler "write a python function that" → typed signature  [rule: ref-002]
+- [REFRACTION] Bundled task split into two numbered steps               [rule: ref-007]
+- [REFRACTION] "maybe edge cases like…" → 5 specific test cases named  [rule: ref-001]
+- [REFRACTION] ## Constraints added (no-library + error behaviour)      [rule: ref-001]
 - [SANITIZATION]  No PII or injection patterns found
-- [INTROSPECTION] Score: 22 -> 88 / 100
+- [INTROSPECTION] Score: 18 -> 91 / 100
 
-### Prism Overhead This Run: ~1,340t
+### Prism Overhead This Run: ~1,100t
 ```
 
 On Cursor or Claude Code, Prism auto-upgrades to XML (`ref-017`):
 ```xml
-<context>Auth module, existing session-management layer.</context>
 <task>
-1. Add a login page: form fields, validation, POST to /auth/login.
-2. Write unit tests for the login endpoint (happy path + 3 error cases).
+1. Write a Python function `is_valid_email(email: str) -> bool` using regex only.
+2. Write unit tests covering: valid address, empty string, missing `@`, multiple `@`, no domain extension.
 </task>
-<constraints>No third-party auth libs. Use the existing UserSession model.</constraints>
+<constraints>Regex only — no third-party packages. Return False for invalid input, do not raise.</constraints>
 ```
+
+> Try it yourself: paste the "before" prompt into your AI chat, then run `/prism improve-prompt` on it. The output above is what Prism produces.
 
 ---
 
@@ -92,14 +96,12 @@ Clone once, configure for each platform with a single command.
 
 ```bash
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-pip install -r ~/.prism-skill/requirements.txt
 python ~/.prism-skill/configure.py cursor
 ```
 
 **Windows (PowerShell):**
 ```powershell
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
-pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
 python "$env:USERPROFILE\.prism-skill\configure.py" cursor
 ```
 
@@ -111,14 +113,12 @@ Run from inside your project directory:
 
 ```bash
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-pip install -r ~/.prism-skill/requirements.txt
 python ~/.prism-skill/configure.py claude
 ```
 
 **Windows (PowerShell):**
 ```powershell
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
-pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
 python "$env:USERPROFILE\.prism-skill\configure.py" claude
 ```
 
@@ -130,22 +130,24 @@ Run from inside your project directory:
 
 ```bash
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-pip install -r ~/.prism-skill/requirements.txt
 python ~/.prism-skill/configure.py copilot
 ```
 
 **Windows (PowerShell):**
 ```powershell
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
-pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
 python "$env:USERPROFILE\.prism-skill\configure.py" copilot
 ```
 
 `@prism` appears in Copilot Chat's agent selector.
 
-### All platforms at once
+### All platforms at once (default)
+
+No argument is needed — running `configure.py` with no platform installs everything:
 
 ```bash
+python ~/.prism-skill/configure.py
+# equivalent to:
 python ~/.prism-skill/configure.py all
 ```
 
@@ -159,20 +161,22 @@ python ~/.prism-skill/configure.py status
 
 | Command | What it does |
 |---------|-------------|
-| `configure.py cursor` | Install Prism skill into Cursor (global, symlink on macOS/Linux) |
-| `configure.py claude` | Copy Prism sub-skills into the current project's `.claude/skills/` |
-| `configure.py copilot` | Copy Prism agent files into the current project's `.github/` |
-| `configure.py all` | Install all three platforms |
+| `configure.py` | **Install all platforms** (default — good for agnostic repos) |
+| `configure.py cursor` | Install Prism skill into Cursor only (global, symlink on macOS/Linux) |
+| `configure.py claude` | Copy Prism sub-skills into the current project's `.claude/skills/` only |
+| `configure.py copilot` | Copy Prism agent files into the current project's `.github/` only |
+| `configure.py all` | Explicit alias for the default — install all three platforms |
 | `configure.py status` | Show what is installed and where |
 | `configure.py remove cursor\|claude\|copilot` | Uninstall a platform |
 | `--force` | Overwrite already-installed files (update) |
 | `--dry-run` | Show what would happen without making changes |
+| `--skip-deps` | Skip the `pip install` step (useful in CI or when deps are pre-installed) |
 
 ---
 
 ## Verify Your Installation
 
-After installing on any platform, run the install verifier to confirm everything is in order:
+`configure.py` runs a health check automatically at the end of every install. You can also trigger it manually at any time:
 
 ```bash
 python ~/.prism-skill/scripts/verify_install.py

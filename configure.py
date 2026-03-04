@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -46,6 +47,146 @@ def _supports_unicode() -> bool:
         return True
     except (UnicodeEncodeError, LookupError):
         return False
+
+
+def _run_verify(repo_root: Path) -> bool:
+    """Load verify_install.py and run its health checks inline.
+
+    Prints a compact summary and returns True if all checks passed.
+    Never raises — a verify error is surfaced as a warning, not a crash.
+    """
+    import importlib.util as _ilu
+
+    verify_path = repo_root / "scripts" / "verify_install.py"
+    if not verify_path.exists():
+        print("\n  [warn] scripts/verify_install.py not found — skipping health check")
+        return True
+
+    try:
+        spec = _ilu.spec_from_file_location("verify_install", verify_path)
+        mod = _ilu.module_from_spec(spec)  # type: ignore[arg-type]
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+
+        results = mod.run_checks(repo_root)
+        passed = sum(1 for r in results if r["passed"])
+        total = len(results)
+        # Test the exact glyphs we will print, not just the em dash
+        encoding = getattr(sys.stdout, "encoding", "") or ""
+        try:
+            "\u2713\u2717\u2192".encode(encoding)
+            uni = True
+        except (UnicodeEncodeError, LookupError):
+            uni = False
+        arrow = "\u2192" if uni else "->"
+
+        print()
+        if passed == total:
+            mark = "\u2713" if uni else "OK"
+            print(f"  {mark} Health check: {total}/{total} — Prism is ready.")
+            print("  Run: /prism hello   for an interactive introduction")
+        else:
+            mark = "\u2717" if uni else "FAIL"
+            print(f"  {mark} Health check: {passed}/{total} passed — issues found:")
+            for r in results:
+                if not r["passed"]:
+                    print(f"      {arrow} {r['label']}: {r['hint']}")
+            print()
+            print("  Fix the issues above, then re-run configure.py")
+
+        return passed == total
+    except Exception as exc:
+        print(f"\n  [warn] Health check skipped: {exc}")
+        return True  # don't fail the install for a verify error
+
+
+def _ensure_dependencies(repo_root: Path, dry_run: bool = False) -> bool:
+    """Install Python dependencies from requirements.txt.
+
+    Runs ``pip install -r requirements.txt`` so callers don't need a separate
+    pip step.  Returns True on success (or if requirements.txt is absent).
+    """
+    req_file = repo_root / "requirements.txt"
+    if not req_file.exists():
+        print("  [skip] requirements.txt not found")
+        return True
+
+    if dry_run:
+        print(f"  [dry-run] pip install -r {req_file.name}")
+        return True
+
+    print("  Installing dependencies ...", end="", flush=True)
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-r", str(req_file), "--quiet"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        print(" done")
+        return True
+
+    print(" FAILED")
+    print(result.stderr.strip(), file=sys.stderr)
+    return False
+
+
+def _check_for_updates(repo_root: Path) -> None:
+    """Non-blocking upstream update check via git.
+
+    Fetches the remote quietly and compares HEAD to origin/main (or
+    origin/master).  Prints a one-line hint if the local clone is behind.
+    Silently skips on any error (no git, no network, not a git repo, etc.).
+    """
+    if not (repo_root / ".git").exists():
+        return
+
+    try:
+        subprocess.run(
+            ["git", "fetch", "--quiet"],
+            capture_output=True,
+            cwd=str(repo_root),
+            timeout=10,
+            check=False,
+        )
+
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=str(repo_root),
+            timeout=5,
+        )
+        if head.returncode != 0:
+            return
+
+        local_sha = head.stdout.strip()
+
+        for branch in ("origin/main", "origin/master"):
+            remote = subprocess.run(
+                ["git", "rev-parse", branch],
+                capture_output=True,
+                text=True,
+                cwd=str(repo_root),
+                timeout=5,
+            )
+            if remote.returncode != 0:
+                continue
+            remote_sha = remote.stdout.strip()
+            if local_sha == remote_sha:
+                print("  Prism is up to date")
+            else:
+                # Count commits behind
+                behind = subprocess.run(
+                    ["git", "rev-list", "--count", f"HEAD..{branch}"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(repo_root),
+                    timeout=5,
+                )
+                n = behind.stdout.strip() if behind.returncode == 0 else "?"
+                print(f"  [update] {n} commit(s) behind {branch} — run `git pull` to upgrade")
+            return
+    except Exception:
+        pass  # no network, git not on PATH, etc. — silently skip
 
 
 # ---------------------------------------------------------------------------
@@ -345,22 +486,28 @@ def show_status(project_dir: Optional[Path] = None, cursor_dir: Optional[Path] =
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="configure.py",
-        description="Prism platform installer",
+        description=(
+            "Prism platform installer.\n\n"
+            "Running with no arguments installs for all platforms (cursor + claude + copilot),\n"
+            "which is recommended for agnostic repo setups."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  python configure.py cursor          Install for Cursor\n"
-            "  python configure.py claude          Install for Claude Code\n"
-            "  python configure.py copilot         Install for GitHub Copilot\n"
-            "  python configure.py all             Install all platforms\n"
+            "  python configure.py                 Install all platforms (default)\n"
+            "  python configure.py cursor          Install for Cursor only\n"
+            "  python configure.py claude          Install for Claude Code only\n"
+            "  python configure.py copilot         Install for GitHub Copilot only\n"
             "  python configure.py status          Show installation status\n"
             "  python configure.py remove claude   Uninstall Claude Code\n"
         ),
     )
     parser.add_argument(
         "command",
+        nargs="?",
+        default="all",
         choices=["cursor", "claude", "copilot", "all", "status", "remove"],
-        help="What to do",
+        help="What to do (default: all — installs for every platform)",
     )
     parser.add_argument(
         "target",
@@ -388,13 +535,24 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show what would be done without making changes",
     )
+    parser.add_argument(
+        "--skip-deps",
+        action="store_true",
+        help="Skip the pip install step (useful in CI where deps are pre-installed)",
+    )
 
     args = parser.parse_args(argv)
+
+    # True when the user ran configure.py without an explicit platform/command word
+    _command_words = {"cursor", "claude", "copilot", "all", "status", "remove"}
+    _raw = argv if argv is not None else sys.argv[1:]
+    _no_command = not any(a in _command_words for a in _raw)
 
     project_dir = Path(args.project_dir) if args.project_dir else None
     cursor_dir = Path(args.cursor_dir) if args.cursor_dir else None
     force = args.force
     dry_run = args.dry_run
+    skip_deps = args.skip_deps
 
     try:
         if args.command == "status":
@@ -426,6 +584,23 @@ def main(argv: list[str] | None = None) -> int:
             else [args.command]
         )
 
+        # --- Setup section (deps + update check) ----------------------------
+        dash = "\u2014" if _supports_unicode() else "--"
+        print(f"Prism configure {dash} setup")
+        print("-" * 40)
+        _check_for_updates(PRISM_ROOT)
+        if not skip_deps:
+            if not _ensure_dependencies(PRISM_ROOT, dry_run):
+                return 1
+        else:
+            print("  [skip] dependency install (--skip-deps)")
+        print()
+
+        # When default fires (no explicit argument) let users know what's happening
+        if args.command == "all" and _no_command:
+            print("Installing for all platforms (run `configure.py cursor|claude|copilot` for a single platform)")
+            print()
+
         dash = "\u2014" if _supports_unicode() else "--"
         for platform in platforms:
             print(f"Prism configure {dash} {platform}")
@@ -433,17 +608,17 @@ def main(argv: list[str] | None = None) -> int:
             if platform == "cursor":
                 install_cursor(cursor_dir, force, dry_run)
                 if not dry_run:
-                    print("Done. Restart Cursor to activate /prism.")
+                    print("  (Restart Cursor to activate /prism)")
             elif platform == "claude":
                 install_claude(project_dir, force, dry_run)
-                if not dry_run:
-                    print("Done. Run /prism hello to verify.")
             elif platform == "copilot":
                 install_copilot(project_dir, force, dry_run)
-                if not dry_run:
-                    print("Done. Use @prism in Copilot Chat to activate.")
             if len(platforms) > 1 and platform != platforms[-1]:
                 print()
+
+        if not dry_run:
+            if not _run_verify(PRISM_ROOT):
+                return 1
 
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
