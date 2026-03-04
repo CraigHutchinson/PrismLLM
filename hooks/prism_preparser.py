@@ -283,7 +283,11 @@ def _build_block_message(result: pii_scan.ScanResult) -> str:
     if result.injection_risk:
         lines.append(f"Prompt injection detected: {', '.join(result.injection_categories)}")
         lines.append("Remove override or hijack phrases before submitting.")
-    lines.append("\nEdit your prompt and resend, or run /prism hook off to disable.")
+    lines.append(
+        "\nEdit your prompt and resend, or disable Prism hooks:"
+        "\n  /prism hook off"
+        "\n  python scripts/hook_installer.py --action off"
+    )
     return "\n".join(lines)
 
 
