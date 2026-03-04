@@ -6,7 +6,7 @@
 
 ---
 
-## Quick Start (5 minutes)
+## Quick Start (3 commands)
 
 ```bash
 # 1. Clone
@@ -15,10 +15,10 @@ git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
 # 2. Install dependencies
 pip install -r ~/.prism-skill/requirements.txt
 
-# 3. Link the skill (Cursor example — see platform steps below)
-ln -s ~/.prism-skill/.cursor/skills/prism ~/.cursor/skills/prism  # macOS/Linux
+# 3. Configure your platform (cursor, claude, or copilot)
+python ~/.prism-skill/configure.py cursor
 
-# 4. Verify the install is healthy
+# 4. Verify everything is healthy
 python ~/.prism-skill/scripts/verify_install.py
 
 # 5. Run your first Prism command
@@ -86,93 +86,87 @@ All analysis runs on the cheapest platform-native model within your security bou
 
 **Prerequisites:** Python 3.9+.
 
+Clone once, configure for each platform with a single command.
+
 ### Cursor
 
 ```bash
-# 1. Clone into a shared location
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-
-# 2. Install Python dependencies
 pip install -r ~/.prism-skill/requirements.txt
-
-# 3. Symlink the skill into your Cursor skills directory
-ln -s ~/.prism-skill/.cursor/skills/prism ~/.cursor/skills/prism  # macOS/Linux
-# Windows: mklink /D "%USERPROFILE%\.cursor\skills\prism" "%USERPROFILE%\.prism-skill\.cursor\skills\prism"
-
-# 4. Restart Cursor — /prism appears in the skill menu
+python ~/.prism-skill/configure.py cursor
 ```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
+python "$env:USERPROFILE\.prism-skill\configure.py" cursor
+```
+
+Restart Cursor after running — `/prism` appears in the skill menu.
 
 ### Claude Code
 
-**macOS / Linux:**
+Run from inside your project directory:
+
 ```bash
-# 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-
-# 2. Install Python dependencies
 pip install -r ~/.prism-skill/requirements.txt
-
-# 3. Copy the skill into your project's .claude/ directory
-cp -r ~/.prism-skill/.claude/skills/prism .claude/skills/prism
-cp -r ~/.prism-skill/.claude/skills/prism-sanitize .claude/skills/
-cp -r ~/.prism-skill/.claude/skills/prism-score .claude/skills/
-cp -r ~/.prism-skill/.claude/skills/prism-refract .claude/skills/
-
-# 4. /prism is now available as a slash command in Claude Code
+python ~/.prism-skill/configure.py claude
 ```
 
 **Windows (PowerShell):**
 ```powershell
-# 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
-
-# 2. Install Python dependencies
 pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
-
-# 3. Copy the skill files into your project's .claude\ directory
-$src = "$env:USERPROFILE\.prism-skill\.claude\skills"
-New-Item -ItemType Directory -Force ".claude\skills" | Out-Null
-Copy-Item -Recurse "$src\prism"           ".claude\skills\prism"
-Copy-Item -Recurse "$src\prism-sanitize"  ".claude\skills\prism-sanitize"
-Copy-Item -Recurse "$src\prism-score"     ".claude\skills\prism-score"
-Copy-Item -Recurse "$src\prism-refract"   ".claude\skills\prism-refract"
-
-# 4. /prism is now available as a slash command in Claude Code
+python "$env:USERPROFILE\.prism-skill\configure.py" claude
 ```
+
+`/prism` is now available as a slash command in Claude Code.
 
 ### GitHub Copilot
 
-**macOS / Linux:**
+Run from inside your project directory:
+
 ```bash
-# 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
-
-# 2. Install Python dependencies
 pip install -r ~/.prism-skill/requirements.txt
-
-# 3. Copy platform files into your repo
-cp ~/.prism-skill/.github/agents/prism.agent.md .github/agents/
-cp ~/.prism-skill/.github/copilot-instructions.md .github/
-
-# 4. The @prism agent appears in Copilot Chat's agent selector
+python ~/.prism-skill/configure.py copilot
 ```
 
 **Windows (PowerShell):**
 ```powershell
-# 1. Clone the repo
 git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
-
-# 2. Install Python dependencies
 pip install -r "$env:USERPROFILE\.prism-skill\requirements.txt"
-
-# 3. Copy platform files into your repo
-$src = "$env:USERPROFILE\.prism-skill"
-New-Item -ItemType Directory -Force ".github\agents" | Out-Null
-Copy-Item "$src\.github\agents\prism.agent.md" ".github\agents\prism.agent.md"
-Copy-Item "$src\.github\copilot-instructions.md" ".github\copilot-instructions.md"
-
-# 4. The @prism agent appears in Copilot Chat's agent selector
+python "$env:USERPROFILE\.prism-skill\configure.py" copilot
 ```
+
+`@prism` appears in Copilot Chat's agent selector.
+
+### All platforms at once
+
+```bash
+python ~/.prism-skill/configure.py all
+```
+
+### Check what is installed
+
+```bash
+python ~/.prism-skill/configure.py status
+```
+
+### configure.py reference
+
+| Command | What it does |
+|---------|-------------|
+| `configure.py cursor` | Install Prism skill into Cursor (global, symlink on macOS/Linux) |
+| `configure.py claude` | Copy Prism sub-skills into the current project's `.claude/skills/` |
+| `configure.py copilot` | Copy Prism agent files into the current project's `.github/` |
+| `configure.py all` | Install all three platforms |
+| `configure.py status` | Show what is installed and where |
+| `configure.py remove cursor\|claude\|copilot` | Uninstall a platform |
+| `--force` | Overwrite already-installed files (update) |
+| `--dry-run` | Show what would happen without making changes |
 
 ---
 
@@ -314,25 +308,15 @@ Every `/prism improve-prompt` response follows this structure:
 
 **Uninstall completely:**
 
-Cursor:
 ```bash
-rm -rf ~/.cursor/skills/prism
-rm -f .claude/settings.json  # or remove just the Prism hook entries
+python ~/.prism-skill/configure.py remove cursor
+python ~/.prism-skill/configure.py remove claude
+python ~/.prism-skill/configure.py remove copilot
 ```
 
-Claude Code:
+For Copilot, also remove hooks first:
 ```bash
-rm -rf .claude/skills/prism .claude/skills/prism-sanitize \
-       .claude/skills/prism-score .claude/skills/prism-refract
-```
-
-Copilot:
-```bash
-# Remove hooks first (cleans up .github/hooks/prism_hooks.json)
 python ~/.prism-skill/scripts/hook_installer.py --action off
-# Then remove agent and instructions files
-rm .github/agents/prism.agent.md
-rm .github/copilot-instructions.md
 ```
 
 Runtime data (local only, never committed):

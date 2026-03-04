@@ -125,6 +125,16 @@ jobs:
           # hello — interactive intro
           python scripts/hello.py --no-demo
 
+      - name: Smoke-test configure.py installer
+        run: |
+          python configure.py status
+          python configure.py all --project-dir /tmp/prism-install-test --dry-run
+          python configure.py claude --project-dir /tmp/prism-install-test
+          python configure.py copilot --project-dir /tmp/prism-install-test
+          python configure.py status --project-dir /tmp/prism-install-test
+          python configure.py remove claude --project-dir /tmp/prism-install-test
+          python configure.py remove copilot --project-dir /tmp/prism-install-test
+
   # ──────────────────────────────────────────────────────────────────
   # Job 4: Cross-platform smoke (macOS + Windows) — runs on every push
   #   after Linux tests pass. Single Python version to keep costs low.
@@ -164,3 +174,13 @@ jobs:
           python scripts/hook_installer.py --action status
           python scripts/overhead_calc.py --print
           python scripts/hello.py --no-demo
+
+      - name: Smoke-test configure.py installer
+        shell: bash
+        run: |
+          python configure.py status
+          python configure.py all --dry-run --project-dir /tmp/prism-test --cursor-dir /tmp/prism-cursor
+          python configure.py claude --project-dir /tmp/prism-test
+          python configure.py copilot --project-dir /tmp/prism-test
+          python configure.py remove claude --project-dir /tmp/prism-test
+          python configure.py remove copilot --project-dir /tmp/prism-test
