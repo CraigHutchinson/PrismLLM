@@ -4,7 +4,7 @@ description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
   /prism improve, /prism sanitize, /prism score, /prism explain,
-  /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
+  /prism format, /prism hook [on/off/status — defaults to on], /prism patterns, /prism usage,
   /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""

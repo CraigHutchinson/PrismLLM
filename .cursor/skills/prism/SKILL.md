@@ -4,7 +4,7 @@ description: >
   Optimize, sanitize, and score prompts using the three-pillar Prism methodology
   (Refraction, Sanitization, Introspection). Use when the user runs /prism hello,
   /prism improve, /prism sanitize, /prism score, /prism explain,
-  /prism format, /prism hook on/off/status, /prism patterns, /prism usage,
+  /prism format, /prism hook [on/off/status — defaults to on], /prism patterns, /prism usage,
   /prism configure, or asks to optimize or analyze a prompt for an AI model.
 disable-model-invocation: true
 argument-hint: "[command] \"[prompt]\""
@@ -207,6 +207,18 @@ Load `introspection-scoring.md`. Score the prompt on all 5 ARS dimensions. Outpu
 **Model routing:** Fast model only.
 
 Load `refraction-playbook.md`. Diagnose the prompt's weaknesses without rewriting it. List each issue with the specific rule that applies and the suggested fix. End with: "Run `/prism improve` to apply all fixes automatically."
+
+---
+
+## `/prism hook` (no sub-command)
+
+**Model routing:** None — deterministic inference, zero model cost.
+
+If the user types `/prism hook` with no `on`, `off`, or `status` argument, infer `on` as the default action. Print this notice before executing (must not be skipped):
+
+> No sub-command supplied — inferring `hook on`. Run `/prism hook off` or `/prism hook status` to override.
+
+Then proceed exactly as `/prism hook on` below.
 
 ---
 
