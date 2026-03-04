@@ -194,13 +194,16 @@ def handle_session_start(platform: str) -> dict:
 def _extract_prompt(raw: str) -> str:
     """
     Cursor/Claude Code passes hook payloads as JSON objects, e.g.:
-      {"prompt": "say hello", "session_id": "user@host", ...}
+      {"prompt": "say hello", "user_email": "user@host", ...}
     Scanning the entire JSON string causes false-positive EMAIL hits on
-    metadata fields (session IDs, paths, git user.email, etc.).
+    metadata fields (user_email, session IDs, workspace paths, etc.).
     Extract only the "prompt" field when the input is valid JSON with that key.
     Fall back to the raw string for plain-text input (backward compatible).
+
+    Cursor prepends a UTF-8 BOM (\\ufeff) to every hook payload, so strip it
+    before testing for a leading '{'.
     """
-    stripped = raw.strip()
+    stripped = raw.strip().lstrip("\ufeff").strip()
     if stripped.startswith("{"):
         try:
             payload = json.loads(stripped)

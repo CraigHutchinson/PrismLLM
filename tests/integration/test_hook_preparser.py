@@ -581,6 +581,16 @@ def test_extract_prompt_json_with_prompt_field():
     assert prism_preparser._extract_prompt(payload) == "say hello"
 
 
+def test_extract_prompt_json_with_bom_prefix():
+    """Covers BOM stripping: Cursor prepends \\ufeff to every hook payload."""
+    payload = "\ufeff" + json.dumps({
+        "prompt": "add coverage badges",
+        "user_email": "user@example.com",
+        "conversation_id": "abc-123",
+    })
+    assert prism_preparser._extract_prompt(payload) == "add coverage badges"
+
+
 def test_extract_prompt_json_without_prompt_field():
     """Covers the branch where JSON is valid but has no 'prompt' key."""
     payload = json.dumps({"session_id": "abc123", "cwd": "/tmp"})
