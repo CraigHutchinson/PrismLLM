@@ -2,7 +2,7 @@
 
 ## Elevator Speech
 
-A new user clones PrismLLM, follows the README, and has no idea if it actually worked. There is no "did it work?" check, no `pip install` step in the docs, and no automated way to confirm the environment is healthy before they type their first `/prism` command. This plan closes that gap with four things: (1) documentation fixes, (2) a single-command install verifier, (3) a smoke test suite that mirrors the README steps, and (4) CI jobs that run the whole install flow in a clean sandbox.
+A new user clones Prism, follows the README, and has no idea if it actually worked. There is no "did it work?" check, no `pip install` step in the docs, and no automated way to confirm the environment is healthy before they type their first `/prism` command. This plan closes that gap with four things: (1) documentation fixes, (2) a single-command install verifier, (3) a smoke test suite that mirrors the README steps, and (4) CI jobs that run the whole install flow in a clean sandbox.
 
 ---
 

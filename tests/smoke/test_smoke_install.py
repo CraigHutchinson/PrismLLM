@@ -74,7 +74,7 @@ def test_verify_install_json_check_names():
 def test_verify_install_detects_missing_script(tmp_path):
     """Exit 1 and actionable hint when a required script is missing."""
     # Copy repo into tmp so we can safely modify it
-    tmp_repo = tmp_path / "PrismLLM"
+    tmp_repo = tmp_path / "Prism"
     shutil.copytree(str(REPO_ROOT), str(tmp_repo))
 
     victim = tmp_repo / "scripts" / "stage2_gate.py"
@@ -96,7 +96,7 @@ def test_verify_install_detects_missing_script(tmp_path):
 
 def test_verify_install_detects_corrupt_json(tmp_path):
     """Exit 1 when a JSON data file is corrupt."""
-    tmp_repo = tmp_path / "PrismLLM"
+    tmp_repo = tmp_path / "Prism"
     shutil.copytree(str(REPO_ROOT), str(tmp_repo))
 
     rules_file = tmp_repo / "knowledge-base" / "rules.json"

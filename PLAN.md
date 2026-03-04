@@ -110,7 +110,7 @@ The prior art also informs Prism's KB design:
 
 ## What Prism Is
 
-A cross-platform Agent Skill package supporting Cursor, Claude Code, and GitHub Copilot. The PrismLLM repo ships platform-ready directories for each tool. A shared `SKILL.md` (built on the open [AgentSkills.io](https://agentskills.io/) standard) works natively in both Cursor and Claude Code with no changes. GitHub Copilot uses a translated `.github/agents/prism.agent.md`. When invoked, the agent reads the skill, queries the knowledge base, applies the Prism methodology, and returns an optimized prompt.
+A cross-platform Agent Skill package supporting Cursor, Claude Code, and GitHub Copilot. The Prism repo ships platform-ready directories for each tool. A shared `SKILL.md` (built on the open [AgentSkills.io](https://agentskills.io/) standard) works natively in both Cursor and Claude Code with no changes. GitHub Copilot uses a translated `.github/agents/prism.agent.md`. When invoked, the agent reads the skill, queries the knowledge base, applies the Prism methodology, and returns an optimized prompt.
 
 ## Implementation Todo List
 
@@ -267,7 +267,7 @@ flowchart TD
 ## File Structure
 
 ```
-d:\Github\PrismLLM\
+d:\Github\Prism\
 ├── README.md
 ├── PLAN.md                                # This document
 ├── .gitignore                             # Excludes .prism/ (runtime data) from version control
@@ -1068,7 +1068,7 @@ For the agent reasoning layer (SKILL.md) and Claude Code sub-skills, a manual ch
 
 **Cursor:**
 
-1. Clone or copy the `PrismLLM` repo into your project or a shared location.
+1. Clone or copy the `Prism` repo into your project or a shared location.
 2. Symlink or copy `.cursor/skills/prism/` into your Cursor skills directory.
 3. Open Cursor — `/prism` appears in the skill menu immediately.
 4. Run `/prism hook on` to activate auto-analysis (optional).

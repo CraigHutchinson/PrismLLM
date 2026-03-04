@@ -8,7 +8,7 @@ Run these manually before each release against a live IDE session.
 
 ## Setup Checklist
 
-- [ ] PrismLLM repo cloned to local machine
+- [ ] Prism repo cloned to local machine
 - [ ] `/prism hook off` run to ensure clean state
 - [ ] `.prism/` directory does not exist (fresh state)
 

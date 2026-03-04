@@ -13,7 +13,7 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
 
 # 2. Configure — installs deps, checks for updates, sets up all platforms, self-checks
 python ~/.prism-skill/configure.py
@@ -21,7 +21,7 @@ python ~/.prism-skill/configure.py
 
 **Windows (PowerShell):**
 ```powershell
-git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
 python "$env:USERPROFILE\.prism-skill\configure.py"
 ```
 
@@ -98,13 +98,13 @@ Clone once, configure for each platform with a single command.
 ### Cursor
 
 ```bash
-git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
 python ~/.prism-skill/configure.py cursor
 ```
 
 **Windows (PowerShell):**
 ```powershell
-git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
 python "$env:USERPROFILE\.prism-skill\configure.py" cursor
 ```
 
@@ -115,13 +115,13 @@ Restart Cursor after running — `/prism` appears in the skill menu.
 Run from inside your project directory:
 
 ```bash
-git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
 python ~/.prism-skill/configure.py claude
 ```
 
 **Windows (PowerShell):**
 ```powershell
-git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
 python "$env:USERPROFILE\.prism-skill\configure.py" claude
 ```
 
@@ -132,13 +132,13 @@ python "$env:USERPROFILE\.prism-skill\configure.py" claude
 Run from inside your project directory:
 
 ```bash
-git clone https://github.com/CraigHutchinson/PrismLLM ~/.prism-skill
+git clone https://github.com/CraigHutchinson/Prism ~/.prism-skill
 python ~/.prism-skill/configure.py copilot
 ```
 
 **Windows (PowerShell):**
 ```powershell
-git clone https://github.com/CraigHutchinson/PrismLLM "$env:USERPROFILE\.prism-skill"
+git clone https://github.com/CraigHutchinson/Prism "$env:USERPROFILE\.prism-skill"
 python "$env:USERPROFILE\.prism-skill\configure.py" copilot
 ```
 
@@ -336,7 +336,7 @@ rm -rf .prism/
 ## Architecture
 
 ```
-PrismLLM/
+Prism/
 ├── .cursor/skills/prism/
 │   ├── SKILL.md                 ← Command dispatch + routing logic
 │   ├── refraction-playbook.md   ← XML tags, CoT triggers, caching strategy

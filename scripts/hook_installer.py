@@ -142,7 +142,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Install or remove Prism hooks.")
     parser.add_argument("--action", choices=["on", "off", "status"], required=True)
     parser.add_argument("--root", default=str(PRISM_ROOT),
-                        help="PrismLLM repo root (default: auto-detected)")
+                        help="Prism repo root (default: auto-detected)")
     args = parser.parse_args()
 
     prism_root = Path(args.root)

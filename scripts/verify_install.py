@@ -100,7 +100,7 @@ def check_scripts_present(repo_root: Path) -> dict:
         return _ok(f"All {len(required)} core scripts present")
     return _fail(
         f"Missing scripts: {', '.join(missing)}",
-        "Re-clone the repository: git clone https://github.com/CraigHutchinson/PrismLLM",
+        "Re-clone the repository: git clone https://github.com/CraigHutchinson/Prism",
     )
 
 
@@ -270,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--repo-root",
         default=None,
-        help="Path to the PrismLLM repository root (default: auto-detect from this script's location)",
+        help="Path to the Prism repository root (default: auto-detect from this script's location)",
     )
     parser.add_argument(
         "--json",

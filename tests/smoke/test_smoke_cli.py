@@ -232,7 +232,7 @@ class TestHookInstaller:
         assert any(kw in output for kw in ("cursor", "claude", "copilot", "hook", "status", "active", "inactive"))
 
     def test_on_off_roundtrip_in_temp_dir(self, tmp_path):
-        tmp_repo = tmp_path / "PrismLLM"
+        tmp_repo = tmp_path / "Prism"
         shutil.copytree(str(REPO_ROOT), str(tmp_repo))
 
         on_result = run_script("hook_installer.py", "--action", "on", "--root", str(tmp_repo))
@@ -246,7 +246,7 @@ class TestHookInstaller:
 
     def test_on_idempotent(self, tmp_path):
         """Running hook on twice should not error."""
-        tmp_repo = tmp_path / "PrismLLM"
+        tmp_repo = tmp_path / "Prism"
         shutil.copytree(str(REPO_ROOT), str(tmp_repo))
 
         run_script("hook_installer.py", "--action", "on", "--root", str(tmp_repo))

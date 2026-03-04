@@ -150,7 +150,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--root", default=str(PRISM_ROOT),
-        help="Path to PrismLLM repo root (default: auto-detected)",
+        help="Path to Prism repo root (default: auto-detected)",
     )
     parser.add_argument(
         "--output", default=None,
