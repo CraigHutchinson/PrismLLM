@@ -62,12 +62,19 @@ jobs:
           print(f'OK: {len(data[\"patterns\"])} patterns validated')
           "
 
-      - name: Upload coverage report
+      - name: Upload coverage report (artifact)
         uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.11' && always()
         with:
           name: coverage-report
           path: coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.11'
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
 
   # ──────────────────────────────────────────────────────────────────
   # Job 2: Smoke tests — exercise real CLI surface end-to-end (Linux)

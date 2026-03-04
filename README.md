@@ -2,7 +2,10 @@
 
 > **Treat your prompts like code.** Vague, bundled, or data-leaking prompts waste tokens, produce off-target responses, and risk exposing sensitive data. Prism catches them before they leave your editor — no new tools, no subscription, no context switch. Lives inside Cursor, Claude Code, or GitHub Copilot.
 
-[![Tests](https://github.com/CraigHutchinson/PrismLLM/actions/workflows/test.yml/badge.svg)](https://github.com/CraigHutchinson/PrismLLM/actions)
+[![Tests](https://github.com/CraigHutchinson/Prism/actions/workflows/test.yml/badge.svg)](https://github.com/CraigHutchinson/Prism/actions/workflows/test.yml)
+[![Coverage](https://codecov.io/gh/CraigHutchinson/Prism/graph/badge.svg)](https://codecov.io/gh/CraigHutchinson/Prism)
+[![Security Coverage](https://img.shields.io/badge/security%20coverage-100%25-brightgreen)](https://github.com/CraigHutchinson/Prism/actions/workflows/test.yml)
+[![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12-blue)](https://github.com/CraigHutchinson/Prism/actions/workflows/test.yml)
 
 ---
 
@@ -374,7 +377,7 @@ PrismLLM/
 │   ├── rules.json             ← 35 seeded prompt engineering rules
 │   └── sources.md             ← Bibliography + prior art
 │
-└── tests/                     ← pytest suite — 307 tests, 96% coverage
+└── tests/                     ← pytest suite — 105 tests, 100% security coverage
 ```
 
 ---
