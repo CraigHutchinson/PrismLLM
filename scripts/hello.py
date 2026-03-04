@@ -138,10 +138,14 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
             safe_str = "clear"
             pii_str = "nothing sensitive found"
         else:
-            found = s1["pii_found"] if s1["pii_found"] else []
-            pii_str = f"found: {', '.join(found)}" if found else "sensitive content detected"
+            found_codes = s1["pii_found"] if s1["pii_found"] else []
+            try:
+                import pii_scan as _pii
+                found_names = [_pii.friendly(t) for t in found_codes]
+            except Exception:
+                found_names = found_codes
+            pii_str = f"found: {', '.join(found_names)}" if found_names else "sensitive content detected"
             safe_str = "blocked"
-        # (PII = Personally Identifiable Information — emails, passwords, tokens, etc.)
         filler_note = (
             f"  {s1['filler_count']} filler word(s) detected, "
             f"prompt efficiency {s1['efficiency_ratio']:.0%}"

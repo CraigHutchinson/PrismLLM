@@ -192,7 +192,7 @@ def test_detects_ip_address():
     assert "IP_ADDRESS" in result.pii_found
     # IP is warn severity — safe should remain True (no block-level issue)
     assert result.safe is True
-    assert any("consider whether" in issue for issue in result.issues)
+    assert any("check if this is intentional" in issue for issue in result.issues)
 
 
 # ── All injection categories ──────────────────────────────────────────────────

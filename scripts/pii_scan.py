@@ -18,6 +18,29 @@ import sys
 from dataclasses import dataclass, asdict, field
 from typing import List, Optional
 
+# ── Friendly display names (used in user-facing messages) ─────────────────────
+
+FRIENDLY_NAMES: dict[str, str] = {
+    "EMAIL":             "email address",
+    "PHONE":             "phone number",
+    "SSN":               "Social Security Number (SSN)",
+    "CREDIT_CARD":       "credit card number",
+    "API_KEY_OPENAI":    "OpenAI API key",
+    "API_KEY_ANTHROPIC": "Anthropic API key",
+    "API_KEY_GITHUB":    "GitHub access token",
+    "API_KEY_AWS":       "AWS access key",
+    "SECRET_KEY":        "password or secret",
+    "BEARER_TOKEN":      "bearer token",
+    "JWT":               "JWT token",
+    "IP_ADDRESS":        "IP address",
+}
+
+
+def friendly(entity_type: str) -> str:
+    """Return a human-readable label for an entity type code."""
+    return FRIENDLY_NAMES.get(entity_type, entity_type.replace("_", " ").lower())
+
+
 # ── PII patterns ──────────────────────────────────────────────────────────────
 
 PII_PATTERNS: list[tuple[str, str, str, re.Pattern]] = [
@@ -207,11 +230,12 @@ def scan(text: str) -> ScanResult:
             if severity == "block":
                 result.safe = False
                 result.issues.append(
-                    f"{entity_type} detected — remove or replace with a placeholder before submitting"
+                    f"{friendly(entity_type)} detected (PII: {entity_type}) — "
+                    "replace with a placeholder before submitting"
                 )
             else:
                 result.issues.append(
-                    f"{entity_type} detected — consider whether this is intentional"
+                    f"{friendly(entity_type)} detected — check if this is intentional"
                 )
             working = pattern.sub(replacement, working)
 
@@ -276,7 +300,8 @@ def main() -> None:
         print(json.dumps(result.to_dict(), indent=2))
     else:
         print(f"Safe:            {result.safe}")
-        print(f"PII found:       {result.pii_found or 'none'}")
+        friendly_found = [friendly(t) for t in result.pii_found] if result.pii_found else []
+        print(f"PII found:       {friendly_found or 'none'}")
         print(f"Injection risk:  {result.injection_risk}")
         if result.injection_categories:
             print(f"  Categories:    {result.injection_categories}")

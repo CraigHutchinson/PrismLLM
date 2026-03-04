@@ -134,7 +134,7 @@ def handle_session_start(platform: str) -> dict:
     if cfg_bool(config, "hook", "session_context_injection"):
         output["additionalContext"] = (
             "Prism Mode active. Prompts are being pre-screened for structure, "
-            "PII, and injection risk. Run /prism hook off to disable."
+            "sensitive data (PII), and injection risk. Run /prism hook off to disable."
         )
 
     alert = usage_log.read_and_clear_alert()
@@ -190,7 +190,7 @@ def handle_pre_tool_use(tool_input: str, platform: str) -> dict:
     prompt = _extract_prompt(tool_input)
     result = pii_scan.scan(prompt)
     if not result.safe:
-        reason = "; ".join(result.issues[:2]) if result.issues else "PII or injection detected"
+        reason = "; ".join(result.issues[:2]) if result.issues else "sensitive data or injection detected"
         if platform == "copilot":
             return {"permissionDecision": "deny", "reason": reason}
         return _block_response(platform, f"Prism blocked tool use: {reason}")
@@ -277,11 +277,12 @@ def _write_session_entry(platform: str, config: dict) -> None:
 def _build_block_message(result: pii_scan.ScanResult) -> str:
     lines = ["⚡ Prism blocked this prompt.\n"]
     if result.pii_found:
-        lines.append(f"PII detected: {', '.join(result.pii_found)}")
-        lines.append("Remove or replace sensitive data before submitting.")
+        friendly = [pii_scan.friendly(t) for t in result.pii_found]
+        lines.append(f"Sensitive data found: {', '.join(friendly)}")
+        lines.append("Replace it with a placeholder (e.g. [REDACTED]) before submitting.")
     if result.injection_risk:
-        lines.append(f"Injection risk detected: {', '.join(result.injection_categories)}")
-        lines.append("Remove override/hijack phrases before submitting.")
+        lines.append(f"Prompt injection detected: {', '.join(result.injection_categories)}")
+        lines.append("Remove override or hijack phrases before submitting.")
     lines.append("\nEdit your prompt and resend, or run /prism hook off to disable.")
     return "\n".join(lines)
 
