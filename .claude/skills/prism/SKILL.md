@@ -75,6 +75,36 @@ On Claude Code the format is always xml — this is the preferred Claude upgrade
 
 ---
 
+## `/prism improve <file_path>` — Agent File Analysis Mode
+
+**Model routing:** None — deterministic script only.
+
+**File Detection:** Before Prompt Resolution, check whether the argument looks like a file path (contains `/`, `\`, or ends in `.md`, `.txt`, `.yaml`, `.json`). If the `Read` tool confirms the file exists, use this mode instead of the prompt pipeline.
+
+**Step 1 — Analyse (no model):**
+```bash
+python scripts/agent_review.py --file "<file_path>" --json
+```
+
+**Step 2 — Present findings:**
+
+Display a numbered table (rule ID, severity, section, before, after) for every issue found.
+
+**Step 3 — Apply all fixes automatically:**
+```bash
+python scripts/agent_review.py --file "<file_path>" --apply
+```
+
+**Step 4 — Report outcome:**
+```
+[N] issue(s) found, [N] fix(es) applied.
+File rewritten: <file_path>
+```
+
+If no issues are found, output: "No issues detected in `<file_path>`. The file meets all agent design guidelines."
+
+---
+
 ## Prompt Resolution (all platforms)
 
 **Run this before any other step when handling `/prism improve`:**

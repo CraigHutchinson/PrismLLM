@@ -75,9 +75,58 @@ Format rules: `ref-016` (markdown default), `ref-017` (xml for Claude), `ref-018
 
 ---
 
-## `/prism improve "<prompt>"`
+## `/prism improve "<prompt or file path>"`
 
 **Model routing:** Fast model for Subagents A/B/C (parallel in Claude Code, sequential in Cursor). Capable model for synthesis.
+
+**File Detection — run first, before Prompt Resolution:**
+
+Check whether the argument looks like a file path (contains `/`, `\`, or ends in `.md`, `.txt`, `.yaml`, `.json`):
+
+1. Attempt to read the file using the `Read` tool.
+2. If the file **exists** → switch to **Agent File Analysis Mode** (see the section below). Do not run the prompt pipeline.
+3. If the file **does not exist** → treat the argument as a literal prompt and continue to Prompt Resolution below.
+
+---
+
+## `/prism improve <file_path>` — Agent File Analysis Mode
+
+**Model routing:** None — deterministic script only.
+
+Use this mode when the argument resolves to an existing file (agent definition, skill markdown, or any structured markdown document).
+
+**Step 1 — Analyse (no model):**
+```bash
+python scripts/agent_review.py --file "<file_path>" --json
+```
+
+**Step 2 — Present findings:**
+
+Display a numbered table with all issues found:
+
+| # | Rule | Sev | Section | Before (issue) | After (suggested fix) |
+|---|------|-----|---------|----------------|-----------------------|
+| 1 | agt-001 | warn | responsibilities | "Never add tests…" | "Add tests only when…" |
+
+Then show each issue in full (rule ID, severity, before, after, explanation).
+
+**Step 3 — Apply all fixes automatically:**
+```bash
+python scripts/agent_review.py --file "<file_path>" --apply
+```
+
+**Step 4 — Report outcome:**
+
+Output a short summary:
+```
+[N] issue(s) found, [N] fix(es) applied.
+File rewritten: <file_path>
+Run /prism improve <file_path> again to verify.
+```
+
+If no issues are found, output: "No issues detected in `<file_path>`. The file meets all agent design guidelines."
+
+---
 
 **Prompt Resolution — run before any other step:**
 
