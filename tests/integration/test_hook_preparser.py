@@ -571,3 +571,47 @@ def test_session_start_alert_no_existing_context(tmp_path):
                     with patch.object(prism_preparser, "snapshot_overhead"):
                         result = prism_preparser.handle_session_start("cursor")
     assert "additionalContext" in result
+
+
+# ── _extract_prompt: JSON payload branches ────────────────────────────────────
+
+def test_extract_prompt_json_with_prompt_field():
+    """Covers the happy path: valid JSON object containing a 'prompt' key."""
+    payload = json.dumps({"prompt": "say hello", "session_id": "abc123"})
+    assert prism_preparser._extract_prompt(payload) == "say hello"
+
+
+def test_extract_prompt_json_without_prompt_field():
+    """Covers the branch where JSON is valid but has no 'prompt' key."""
+    payload = json.dumps({"session_id": "abc123", "cwd": "/tmp"})
+    assert prism_preparser._extract_prompt(payload) == payload
+
+
+def test_extract_prompt_invalid_json_starting_with_brace():
+    """Covers the except (json.JSONDecodeError, ValueError) branch."""
+    malformed = "{not valid json"
+    assert prism_preparser._extract_prompt(malformed) == malformed
+
+
+# ── _debug_log: rotation and OSError branches ─────────────────────────────────
+
+def test_debug_log_rotates_at_200_entries(tmp_path):
+    """Covers the lines[-200:] rotation branch."""
+    debug_log = tmp_path / "hook-debug.log"
+    # Write 201 existing entries so rotation triggers
+    debug_log.write_text(
+        "\n".join(json.dumps({"ts": str(i)}) for i in range(201)) + "\n"
+    )
+    with patch.multiple(prism_preparser, DEBUG_LOG=debug_log, PRISM_DIR=tmp_path):
+        prism_preparser._debug_log("userPromptSubmit", "raw", "extracted")
+    lines = [l for l in debug_log.read_text().splitlines() if l.strip()]
+    assert len(lines) == 200
+
+
+def test_debug_log_oserror_does_not_raise(tmp_path):
+    """Covers the except OSError: pass branch — write failure must not crash."""
+    debug_log = tmp_path / "hook-debug.log"
+    with patch.multiple(prism_preparser, DEBUG_LOG=debug_log, PRISM_DIR=tmp_path):
+        with patch("pathlib.Path.write_text", side_effect=OSError("disk full")):
+            # Should complete silently
+            prism_preparser._debug_log("userPromptSubmit", "raw", "extracted")
