@@ -111,9 +111,9 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
         "",
         "  [Refraction]    Restructures prompts: XML tags, CoT triggers,",
         "                  task decomposition, cache-friendly layout",
-        "  [Sanitization]  Catches PII, API keys, and injection risks",
-        "                  before they reach the model \u2014 pure regex, no cost" if uni
-        else "                  before they reach the model -- pure regex, no cost",
+        "  [Sanitization]  Scans for personal data, API keys, and prompt",
+        "                  hijacking attempts before they reach the model \u2014 zero cost" if uni
+        else "                  hijacking attempts before they reach the model -- zero cost",
         "  [Introspection] Scores 0-100 across 5 dimensions + tracks",
         "                  your personal writing patterns over time",
         "",
@@ -130,35 +130,46 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
         lines.append("  (demo skipped \u2014 run without --no-demo to see live results)" if uni
                      else "  (demo skipped -- run without --no-demo to see live results)")
     elif not stage1.get("ok"):
-        lines.append(f"  Stage 1 (PII scan) ... error: {stage1.get('error', 'unknown')}")
+        lines.append(f"  Stage 1 — privacy check ... error: {stage1.get('error', 'unknown')}")
     else:
         s1 = stage1
-        safe_str = f"safe={s1['safe']}"
-        pii_str = f"no PII detected" if not s1["pii_found"] else f"PII: {', '.join(s1['pii_found'])}"
-        filler_str = f"  {s1['filler_count']} filler phrase(s), efficiency {s1['efficiency_ratio']:.0%}" if s1.get("filler_count") else ""
+        # Natural-language result: avoid raw field names like "safe=True"
+        if s1["safe"]:
+            safe_str = "clear"
+            pii_str = "nothing sensitive found"
+        else:
+            found = s1["pii_found"] if s1["pii_found"] else []
+            pii_str = f"found: {', '.join(found)}" if found else "sensitive content detected"
+            safe_str = "blocked"
+        # (PII = Personally Identifiable Information — emails, passwords, tokens, etc.)
+        filler_note = (
+            f"  {s1['filler_count']} filler word(s) detected, "
+            f"prompt efficiency {s1['efficiency_ratio']:.0%}"
+        ) if s1.get("filler_count") else ""
 
-        lines.append(f"  Stage 1 (PII scan)     {tick}  {safe_str}, {pii_str}")
-        if filler_str:
-            lines.append(filler_str)
+        dash = "\u2014" if uni else "--"
+        lines.append(f"  Stage 1 {dash} privacy check  {tick}  {safe_str}, {pii_str}")
+        if filler_note:
+            lines.append(filler_note)
 
         if not stage2.get("ok"):
-            lines.append(f"  Stage 2 (quality gate) error: {stage2.get('error', 'unknown')}")
+            lines.append(f"  Stage 2 {dash} clarity check  error: {stage2.get('error', 'unknown')}")
         else:
             s2_result = stage2["result"]
             # Internal API: {"ok": True} = no gate issues
             # CLI / hook API: {"continue": true, "additionalContext": "..."}
             ctx = s2_result.get("additionalContext", "")
             if s2_result.get("ok") is True and not ctx:
-                gate_str = "no issues flagged"
+                gate_str = "looks good"
             elif "vague" in ctx.lower():
-                gate_str = "vague prompt \u2014 would suggest improvements" if uni \
-                    else "vague prompt -- would suggest improvements"
+                gate_str = "too vague \u2014 adding context would improve results" if uni \
+                    else "too vague -- adding context would improve results"
             elif "bundled" in ctx.lower():
-                gate_str = "bundled prompt \u2014 would suggest task split" if uni \
-                    else "bundled prompt -- would suggest task split"
+                gate_str = "multiple tasks mixed together \u2014 consider splitting" if uni \
+                    else "multiple tasks mixed together -- consider splitting"
             else:
                 gate_str = "suggestions available"
-            lines.append(f"  Stage 2 (quality gate) {tick}  {gate_str}")
+            lines.append(f"  Stage 2 {dash} clarity check  {tick}  {gate_str}")
 
         lines += [
             "",
@@ -184,7 +195,7 @@ def _build_text(stage1: dict, stage2: dict, run_demo: bool) -> str:
     lines += [
         "  /prism improve-prompt \"your prompt\"   Full pipeline + rewrite",
         "  /prism format                         Show active structural format",
-        "  /prism sanitize \"your prompt\"         PII + injection check",
+        "  /prism sanitize \"your prompt\"         Privacy & security scan",
         "  /prism score \"your prompt\"            Quick quality score (0-100)",
         "  /prism explain \"your prompt\"          Diagnose without rewriting",
         "  /prism hook on                        Enable always-on pre-flight",

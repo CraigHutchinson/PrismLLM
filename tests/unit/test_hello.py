@@ -183,7 +183,7 @@ class TestBuildText:
         text = hello._build_text(self._s1_ok(), self._s2_ok(), run_demo=True)
         assert "Stage 1" in text
         assert "Stage 2" in text
-        assert "safe=True" in text
+        assert "clear" in text  # natural-language safe result
 
     def test_demo_skipped_message(self):
         text = hello._build_text({}, {}, run_demo=False)
@@ -196,6 +196,7 @@ class TestBuildText:
             {},
             run_demo=True,
         )
+        assert "privacy check" in text
         assert "error" in text.lower()
         assert "import failed" in text
 
@@ -209,7 +210,7 @@ class TestBuildText:
 
     def test_gate_no_issues_message(self):
         text = hello._build_text(self._s1_ok(), self._s2_ok(), run_demo=True)
-        assert "no issues flagged" in text
+        assert "looks good" in text
 
     def test_gate_vague_message(self):
         text = hello._build_text(
@@ -225,7 +226,7 @@ class TestBuildText:
             self._s2_ok(ctx="bundled task detected"),
             run_demo=True,
         )
-        assert "bundled" in text.lower()
+        assert "multiple tasks" in text.lower()
 
     def test_gate_generic_suggestions_message(self):
         text = hello._build_text(
@@ -235,13 +236,34 @@ class TestBuildText:
         )
         assert "suggestions available" in text
 
+    def test_pii_found_shows_natural_language(self):
+        s1_pii = {
+            "ok": True, "safe": False,
+            "pii_found": ["EMAIL", "PHONE"],
+            "injection_risk": False,
+            "filler_count": 0, "efficiency_ratio": 1.0,
+        }
+        text = hello._build_text(s1_pii, self._s2_ok(), run_demo=True)
+        assert "blocked" in text
+        assert "found:" in text
+
+    def test_pii_found_empty_list_shows_fallback(self):
+        s1_pii = {
+            "ok": True, "safe": False,
+            "pii_found": [],  # unsafe but no specific types
+            "injection_risk": False,
+            "filler_count": 0, "efficiency_ratio": 1.0,
+        }
+        text = hello._build_text(s1_pii, self._s2_ok(), run_demo=True)
+        assert "sensitive content detected" in text
+
     def test_filler_count_shown(self):
         text = hello._build_text(self._s1_ok(filler=3), self._s2_ok(), run_demo=True)
         assert "3 filler" in text
 
     def test_no_filler_line_when_zero(self):
         text = hello._build_text(self._s1_ok(filler=0), self._s2_ok(), run_demo=True)
-        assert "filler phrase" not in text
+        assert "filler word(s) detected" not in text
 
     def test_contains_first_commands(self):
         text = hello._build_text(self._s1_ok(), self._s2_ok(), run_demo=True)

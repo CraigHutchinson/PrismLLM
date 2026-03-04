@@ -75,7 +75,7 @@ On Cursor or Claude Code, Prism auto-upgrades to XML (`ref-017`):
 | Pillar | What it does | Cost |
 |--------|-------------|------|
 | **Refraction** | Restructures prompts: XML tags, CoT triggers, output constraints, task decomposition | Fast model × 3 |
-| **Sanitization** | Scans for PII, API keys, and injection phrases **before** any model call — pure regex | Zero (script) |
+| **Sanitization** | Scans for personal data, API keys, and prompt hijacking attempts **before** any model call (PII detection — pure regex) | Zero (script) |
 | **Introspection** | Scores 0–100 across 5 dimensions and learns your personal writing patterns over time | Fast model |
 
 All analysis runs on the cheapest platform-native model within your security boundary (GPT-4.1, claude-haiku-4-5, or Cursor's built-in fast model). No data leaves your platform.
@@ -226,7 +226,7 @@ If any check fails, a one-line fix hint is printed alongside the failure.
 |---------|-------------|-----------|
 | `/prism improve-prompt "..."` | Full pipeline: sanitize → score → refract → rewrite with Why Log | Fast × 3 + Capable × 1 |
 | `/prism format` | Show active structural format (markdown/xml/prefixed) for this platform | None |
-| `/prism sanitize "..."` | PII + injection scan | None (script) |
+| `/prism sanitize "..."` | Privacy & security scan — flags personal data, API keys, prompt hijacking (PII check) | None (script) |
 | `/prism score "..."` | 5-dimension Agentic Readiness Score (0–100) + tips | Fast model |
 | `/prism explain "..."` | Diagnose a prompt without rewriting it | Fast model |
 
