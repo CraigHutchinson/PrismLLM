@@ -5,7 +5,7 @@ PYTHON     ?= python
 PYTHONPATH  = scripts:hooks
 export PYTHONPATH
 
-.PHONY: help test test-cov test-security test-smoke test-all ci restore-samples help
+.PHONY: help test test-cov test-security test-smoke test-all ci restore-samples restore-samples-force help
 
 help:
 	@echo "Prism make targets"
@@ -15,7 +15,8 @@ help:
 	@echo "  make test-smoke        Smoke / CLI tests (mirrors CI job 2)"
 	@echo "  make test-all          All of the above in sequence"
 	@echo "  make ci                Full CI simulation (test-cov + test-security + test-smoke)"
-	@echo "  make restore-samples   Reset sample_data/*.md to their broken template state"
+	@echo "  make restore-samples         Create missing sample_data/*.md from templates (safe)"
+	@echo "  make restore-samples-force   Overwrite all sample_data/*.md from templates (hard reset)"
 
 # ── Mirrors CI job 1: unit + integration, 80% overall ────────────────────────
 test-cov:
@@ -54,3 +55,6 @@ test-all: test-cov test-security test-smoke
 # or before adding a new test scenario.
 restore-samples:
 	$(PYTHON) scripts/restore_samples.py
+
+restore-samples-force:
+	$(PYTHON) scripts/restore_samples.py --force
