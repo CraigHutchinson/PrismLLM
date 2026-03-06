@@ -5,16 +5,19 @@ PYTHON     ?= python
 PYTHONPATH  = scripts:hooks
 export PYTHONPATH
 
-.PHONY: help test test-cov test-security test-smoke test-all ci restore-samples restore-samples-force help
+.PHONY: help test test-cov test-security test-smoke test-all ci restore-samples restore-samples-force test-marketplace test-marketplace-quick test-marketplace-local help
 
 help:
 	@echo "Prism make targets"
-	@echo "  make test              Unit + integration tests (no coverage gate)"
-	@echo "  make test-cov          Unit + integration with 80% coverage gate (mirrors CI job 1)"
-	@echo "  make test-security     pii_scan + prism_preparser at 100% coverage (mirrors CI job 1b)"
-	@echo "  make test-smoke        Smoke / CLI tests (mirrors CI job 2)"
-	@echo "  make test-all          All of the above in sequence"
-	@echo "  make ci                Full CI simulation (test-cov + test-security + test-smoke)"
+	@echo "  make test                    Unit + integration tests (no coverage gate)"
+	@echo "  make test-cov                Unit + integration with 80% coverage gate (mirrors CI job 1)"
+	@echo "  make test-security           pii_scan + prism_preparser at 100% coverage (mirrors CI job 1b)"
+	@echo "  make test-smoke              Smoke / CLI tests (mirrors CI job 2)"
+	@echo "  make test-all                All of the above in sequence"
+	@echo "  make ci                      Full CI simulation (test-cov + test-security + test-smoke)"
+	@echo "  make test-marketplace        Full marketplace integration test (live GitHub repo)"
+	@echo "  make test-marketplace-quick  Quick tests against live GitHub repo (skips /prism improve)"
+	@echo "  make test-marketplace-local  Quick tests against local clone (faster iteration)"
 	@echo "  make restore-samples         Create missing sample_data/*.md from templates (safe)"
 	@echo "  make restore-samples-force   Overwrite all sample_data/*.md from templates (hard reset)"
 
@@ -58,3 +61,15 @@ restore-samples:
 
 restore-samples-force:
 	$(PYTHON) scripts/restore_samples.py --force
+
+# 🛒 Marketplace integration (requires claude CLI on PATH) ─────────────────────
+# Default: tests against live GitHub repo (Unity-Technologies/gsap-ai-market-place)
+# Use --local to test against local clone for faster iteration
+test-marketplace:
+	$(PYTHON) scripts/test_marketplace.py
+
+test-marketplace-quick:
+	$(PYTHON) scripts/test_marketplace.py --quick
+
+test-marketplace-local:
+	$(PYTHON) scripts/test_marketplace.py --local --quick
